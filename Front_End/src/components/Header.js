@@ -102,8 +102,8 @@ const Header = () => {
             />
             {userMenuOpen && (
               <ul className="user-dropdown">
-                <li><Link to="/login" onClick={handleLinkClick}>Iniciar Sesión</Link></li>
-                <li><Link to="/register" onClick={handleLinkClick}>Registrarse</Link></li>
+                <li><Link to="/LR" onClick={handleLinkClick}>Iniciar Sesión</Link></li>
+                <li><Link to="/LR" onClick={handleLinkClick}>Registrarse</Link></li>
               </ul>
             )}
           </div>
