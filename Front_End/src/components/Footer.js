@@ -11,7 +11,7 @@ const Footer = () => {
       {/* Top Section */}
       <div className="footer-top">
         <div className="footer-logo">
-          <h2>FRANK FURT</h2>
+          <h2>El Vandalo Grill</h2>
           <p>Tus comidas favoritas solo aqui.</p>
           <div className="socials">
             <FaFacebookF />

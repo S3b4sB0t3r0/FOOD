@@ -55,7 +55,7 @@ const Header = () => {
         <div className="logo">
           <div className="icon" />
           <div className="text">
-            <h2>Frank Furt</h2>
+            <h2>El Vandalo Grill</h2>
             <small>Comidas Rápidas</small>
           </div>
         </div>
