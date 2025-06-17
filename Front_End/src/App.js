@@ -10,7 +10,8 @@ import { CartProvider } from './context/CartContext';
 import TeamPage from './pages/TeamPage';
 import ServicesPage from './pages/ServicesPage';
 import FoodChainDashboard from './Administrador/dashboard';
-import Login_Register from './pages/Login_Register';
+import ContactPage from './pages/Contacto'
+import Login_Register from './pages/L-R'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/equipo" element={<TeamPage />} />
           <Route path="/servicios" element={<ServicesPage />} />
           <Route path="/LR" element={<Login_Register />} />
+          <Route path="/contacto" element={<ContactPage />} />
         </Routes>
       </Router>
     </CartProvider>

@@ -88,8 +88,7 @@ const Header = () => {
             </ul>
           </li>
 
-          <li><Link to="#" onClick={handleLinkClick}>Ubicaciones</Link></li>
-          <li><Link to="/contact" onClick={handleLinkClick}>Contacto</Link></li>
+          <li><Link to="/contacto" onClick={handleLinkClick}>Contacto</Link></li>
         </ul>
 
         <div className="nav-icons">
