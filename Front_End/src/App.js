@@ -12,6 +12,8 @@ import ServicesPage from './pages/ServicesPage';
 import FoodChainDashboard from './Administrador/dashboard';
 import ContactPage from './pages/Contacto'
 import Login_Register from './pages/L-R'
+import PasswordReset from './pages/RestablecerContraseña';
+import PasswordChange from './pages/CambioContraseña';
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
           <Route path="/servicios" element={<ServicesPage />} />
           <Route path="/LR" element={<Login_Register />} />
           <Route path="/contacto" element={<ContactPage />} />
+          <Route path="/restablecer" element={<PasswordReset />} />
+          <Route path="/cambio" element={<PasswordChange />} />
         </Routes>
       </Router>
     </CartProvider>
