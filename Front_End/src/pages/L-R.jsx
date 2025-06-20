@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // ← AÑADIDO
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import LOGO from '../img/LOGO.png';
+
 
 const Login_Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +16,7 @@ const Login_Register = () => {
   });
 
   const navigate = useNavigate(); // ← AÑADIDO
+  const { login } = useAuth();
 
   const handleInputChange = (e) => {
     setFormData({
@@ -22,11 +25,63 @@ const Login_Register = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Aquí iría la lógica de autenticación
+  
+    const endpoint = isLogin ? '/login' : '/register';
+    const url = `http://localhost:5000/api/user${endpoint}`;
+    
+    const payload = isLogin
+      ? { correo: formData.email, contraseña: formData.password }
+      : {
+          name: formData.name,
+          correo: formData.email,
+          contraseña: formData.password,
+        };
+  
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      alert('Las contraseñas no coinciden');
+      return;
+    }
+  
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Error desconocido');
+      }
+  
+      if (isLogin) {
+        // Guardar token en localStorage
+        login(data.user, data.token);
+  
+        // Redirigir según el rol
+        const rol = data.user.rol;
+  
+        if (rol === 'administrador') {
+          navigate('/Admin');
+        } else if (rol === 'cliente') {
+          navigate('/');
+        } else {
+          alert('Rol no definido');
+        }
+  
+      } else {
+        alert('Registro exitoso. Ahora puedes iniciar sesión.');
+        setIsLogin(true);
+      }
+  
+    } catch (err) {
+      alert(err.message);
+    }
   };
+  
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">

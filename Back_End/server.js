@@ -5,7 +5,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const equipoRoutes = require('./routes/equipoRoutes');
 const productoRoutes = require('./routes/productoRoutes');
+const userRoutes = require('./routes/userRoutes');
 const connectDB = require('./config/db');
+
 
 const app = express();
 
@@ -22,6 +24,7 @@ connectDB();
 // Routes
 app.use('/api', equipoRoutes);
 app.use('/api', productoRoutes);
+app.use('/api/user', userRoutes);
 
 
 // Validacion de conexión
