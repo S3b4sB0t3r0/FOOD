@@ -4,6 +4,7 @@ import {
   MapPin, Clock, Facebook, Twitter, Linkedin, Instagram,
   Menu, X, User, ShoppingCart, ChevronDown
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext'; // IMPORTAR
 import LOGO from '../img/LOGO.png';
 
 const Header = () => {
@@ -11,6 +12,7 @@ const Header = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth(); // USAR contexto
 
   const toggleDropdown = (name) => {
     if (openDropdown === name) {
@@ -181,36 +183,59 @@ const Header = () => {
 
             {/* Iconos derecha */}
             <div className="flex items-center space-x-4">
-              {/* Menú de usuario */}
-              <div className="relative">
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="w-10 h-10 bg-gray-800/50 border border-gray-700 rounded-lg flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:border-yellow-400/50 hover:bg-yellow-400/10 transition-all duration-300"
-                >
-                  <User className="w-5 h-5" />
-                </button>
+                  {/* Menú de usuario */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setUserMenuOpen(!userMenuOpen)}
+                      className="w-10 h-10 bg-gray-800/50 border border-gray-700 rounded-lg flex items-center justify-center text-gray-400 hover:text-yellow-400 hover:border-yellow-400/50 hover:bg-yellow-400/10 transition-all duration-300"
+                    >
+                      <User className="w-5 h-5" />
+                    </button>
                 
-                {userMenuOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-xl shadow-2xl">
-                    <div className="py-2">
-                      <Link
-                        to="/LR"
-                        onClick={handleLinkClick}
-                        className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all duration-300"
-                      >
-                        Iniciar Sesión
-                      </Link>
-                      <Link
-                        to="/LR"
-                        onClick={handleLinkClick}
-                        className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all duration-300"
-                      >
-                        Registrarse
-                      </Link>
-                    </div>
-                  </div>
+                    {userMenuOpen && (
+            <div className="absolute top-full right-0 mt-2 w-48 bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-xl shadow-2xl">
+              <div className="py-2">
+                {user ? (
+                  <>
+                    <Link
+                      to="/cuenta" // o ruta que uses para perfil
+                      onClick={handleLinkClick}
+                      className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all duration-300"
+                    >
+                      Cuenta
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        handleLinkClick();
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all duration-300"
+                    >
+                      Cerrar Sesión
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/LR"
+                      onClick={handleLinkClick}
+                      className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all duration-300"
+                    >
+                      Iniciar Sesión
+                    </Link>
+                    <Link
+                      to="/LR"
+                      onClick={handleLinkClick}
+                      className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all duration-300"
+                    >
+                      Registrarse
+                    </Link>
+                  </>
                 )}
               </div>
+            </div>
+          )}
+        </div>
 
               {/* Botón de compra */}
               <Link
