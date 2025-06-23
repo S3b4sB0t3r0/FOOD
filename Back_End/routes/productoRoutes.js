@@ -1,16 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { getProductos } from '../controllers/productoController.js';
+
 const router = express.Router();
-const Producto = require('../models/Producto');
 
-// GET /api/menu
-router.get('/menu', async (req, res) => {
-  try {
-    const productos = await Producto.find();
-    res.json(productos);
-  } catch (error) {
-    console.error('Error al obtener los productos:', error);
-    res.status(500).json({ message: 'Error del servidor' });
-  }
-});
+router.get('/menu', getProductos);
 
-module.exports = router;
+export default router;

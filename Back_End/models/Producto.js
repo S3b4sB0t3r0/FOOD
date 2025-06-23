@@ -1,13 +1,14 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const productoSchema = new mongoose.Schema({
   title: String,
   description: String,
   price: String, // Puedes cambiar a Number si vas a hacer cálculos
   image: String,
-  category: String, // Ej: "Entradas", "Postres", etc.
+  category: String,
   popular: Boolean,
   new: Boolean,
 });
 
-module.exports = mongoose.model('Producto', productoSchema, 'Productos');
+const Producto = mongoose.model('Producto', productoSchema, 'Productos');
+export default Producto;

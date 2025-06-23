@@ -1,7 +1,6 @@
-// controllers/equipoController.js
-const Equipo = require('../models/Equipo');
+import Equipo from '../models/Equipo.js';
 
-const getEquipo = async (req, res) => {
+export const getEquipo = async (req, res) => {
   try {
     const equipo = await Equipo.find();
     res.status(200).json(equipo);
@@ -9,5 +8,3 @@ const getEquipo = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener el equipo', error });
   }
 };
-
-module.exports = { getEquipo };
