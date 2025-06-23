@@ -5,10 +5,11 @@ const userSchema = new mongoose.Schema({
   correo: { type: String, required: true, unique: true },
   contraseña: { type: String, required: true },
   estado: { type: Boolean, default: true },
-  rol: { type: String, default: null }, // 'cliente' o 'administrador'
+  rol: { type: String, default: null },
   token: { type: String, default: null },
 }, {
   timestamps: true
 });
 
-export default mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+export default User;

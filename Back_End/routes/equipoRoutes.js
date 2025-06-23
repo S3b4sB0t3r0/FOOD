@@ -1,16 +1,8 @@
-// routes/equipoRoutes.js
-const express = require('express');
+import express from 'express';
+import { getEquipo } from '../controllers/equipoController.js';
+
 const router = express.Router();
-const Equipo = require('../models/Equipo');
 
-router.get('/equipo', async (req, res) => {
-  try {
-    const equipo = await Equipo.find(); // busca todos los miembros
-    res.json(equipo);
-  } catch (error) {
-    console.error('Error al obtener el equipo:', error);
-    res.status(500).json({ message: 'Error del servidor' });
-  }
-});
+router.get('/equipo', getEquipo);
 
-module.exports = router;
+export default router;

@@ -1,6 +1,6 @@
-const Producto = require('../models/Producto');
+import Producto from '../models/Producto.js';
 
-const getProductos = async (req, res) => {
+export const getProductos = async (req, res) => {
   try {
     const productos = await Producto.find();
     res.status(200).json(productos);
@@ -8,5 +8,3 @@ const getProductos = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener los productos', error });
   }
 };
-
-module.exports = { getProductos };

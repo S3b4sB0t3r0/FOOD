@@ -6,10 +6,10 @@ import Footer from '../components/Footer';
 const ContactPage = () => {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: ''
+    correo: '',    // <-- antes 'email'
+    telefono: '',  // <-- antes 'phone'
+    asunto: '',    // <-- antes 'subject'
+    mensaje: ''    // <-- antes 'message'
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -20,46 +20,65 @@ const ContactPage = () => {
       [name]: value
     }));
   };
+  
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsSubmitted(true);
-    // Aquí iría la lógica para enviar el formulario
-    setTimeout(() => {
-      setIsSubmitted(false);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch('http://localhost:5000/api/contacto', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setIsSubmitted(true);
       setFormData({
         name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
+        correo: '',
+        telefono: '',
+        asunto: '',
+        mensaje: ''
       });
-    }, 3000);
-  };
+      setTimeout(() => setIsSubmitted(false), 3000);
+    } else {
+      alert(`Error: ${data.message || 'Ocurrió un error al enviar el formulario'}`);
+    }
+  } catch (error) {
+    alert('Error de red o conexión con el servidor');
+    console.error('Error al enviar:', error);
+  }
+};
+
 
   const contactInfo = [
     {
       icon: <MapPin className="w-6 h-6" />,
       title: 'Ubicación Principal',
-      details: ['Av. Libertador 1234', 'Bogotá, Colombia'],
-      extra: 'Centro Comercial Gran Plaza'
+      details: ['La victoria San Cristobal', 'Bogotá, Colombia'],
+      extra: 'La entrada de la victoria'
     },
     {
       icon: <Phone className="w-6 h-6" />,
       title: 'Teléfonos',
-      details: ['+57 1 234-5678', '+57 300 123-4567'],
+      details: ['+57 314 577 3241', '+57 311 205 3270'],
       extra: 'Línea de pedidos 24/7'
     },
     {
       icon: <Mail className="w-6 h-6" />,
       title: 'Correo Electrónico',
-      details: ['info@turestaurante.com', 'pedidos@turestaurante.com'],
+      details: ['elvandalogrillcolombia@gmail.com','elvandalogrillcolombia@gmail.com'],
       extra: 'Respuesta en menos de 2 horas'
     },
     {
       icon: <Clock className="w-6 h-6" />,
       title: 'Horarios de Atención',
-      details: ['Lun - Dom: 10:00 AM - 11:00 PM', 'Delivery 24/7'],
+      details: ['Juv - Dom: 1:00 PM - 10:00 PM', 'Vie - Sab: 1:00 PM - 10:30 PM'],
       extra: 'Servicio continuo'
     }
   ];
@@ -178,8 +197,8 @@ const ContactPage = () => {
                         <label className="block text-white font-medium mb-2">Correo Electrónico</label>
                         <input
                           type="email"
-                          name="email"
-                          value={formData.email}
+                          name="correo"
+                          value={formData.correo}
                           onChange={handleInputChange}
                           required
                           className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-yellow-400 focus:outline-none transition-colors duration-300"
@@ -193,8 +212,8 @@ const ContactPage = () => {
                         <label className="block text-white font-medium mb-2">Teléfono</label>
                         <input
                           type="tel"
-                          name="phone"
-                          value={formData.phone}
+                          name="telefono"
+                          value={formData.telefono}
                           onChange={handleInputChange}
                           className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-yellow-400 focus:outline-none transition-colors duration-300"
                           placeholder="+57 300 123 4567"
@@ -203,18 +222,18 @@ const ContactPage = () => {
                       <div>
                         <label className="block text-white font-medium mb-2">Asunto</label>
                         <select
-                          name="subject"
-                          value={formData.subject}
+                          name="asunto"
+                          value={formData.asunto}
                           onChange={handleInputChange}
                           required
                           className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white focus:border-yellow-400 focus:outline-none transition-colors duration-300"
                         >
                           <option value="">Selecciona un asunto</option>
-                          <option value="pedido">Pedido Especial</option>
-                          <option value="sugerencia">Sugerencia</option>
-                          <option value="queja">Queja o Reclamo</option>
-                          <option value="felicitacion">Felicitación</option>
-                          <option value="otro">Otro</option>
+                          <option value="Pedido Especial">Pedido Especial</option>
+                          <option value="Sugerencia">Sugerencia</option>
+                          <option value="Queja o Reclamo">Queja o Reclamo</option>
+                          <option value="Felicitaciones">Felicitaciones</option>
+                          <option value="Otro">Otro</option>
                         </select>
                       </div>
                     </div>
@@ -222,8 +241,8 @@ const ContactPage = () => {
                     <div>
                       <label className="block text-white font-medium mb-2">Mensaje</label>
                       <textarea
-                        name="message"
-                        value={formData.message}
+                        name="mensaje"
+                        value={formData.mensaje}
                         onChange={handleInputChange}
                         required
                         rows={5}
@@ -249,29 +268,34 @@ const ContactPage = () => {
         </div>
       </section>
 
-      {/* Map Section */}
-      <section className="py-20 bg-gradient-to-r from-yellow-400 to-yellow-500">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">
-              Encuéntranos Fácilmente
-            </h2>
-            <p className="text-xl text-black/80 mb-8 max-w-2xl mx-auto">
-              Visítanos en cualquiera de nuestras ubicaciones o haz tu pedido online
-            </p>
-          </div>
-          
-          <div className="bg-black rounded-3xl p-8 shadow-2xl">
-            <div className="aspect-video bg-gray-900 rounded-2xl flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-                <p className="text-white text-lg">Mapa Interactivo</p>
-                <p className="text-gray-400">Integración con Google Maps</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    {/* Map Section */}
+<section className="py-20 bg-gradient-to-r from-yellow-400 to-yellow-500">
+  <div className="max-w-6xl mx-auto px-4">
+    <div className="text-center mb-12">
+      <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">
+        Encuéntranos Fácilmente
+      </h2>
+      <p className="text-xl text-black/80 mb-8 max-w-2xl mx-auto">
+        Visítanos en cualquiera de nuestras ubicaciones o haz tu pedido online
+      </p>
+    </div>
+
+    <div className="bg-black rounded-3xl p-8 shadow-2xl">
+      <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!3m2!1ses-419!2sco!4v1750647367522!5m2!1ses-419!2sco!6m8!1m7!1sbODkagur-7x7mHUUutOiBg!2m2!1d4.551556636329818!2d-74.09201659626889!3f108.6772218448802!4f8.181438751181673!5f0.7820865974627469"
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          allowFullScreen=""
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* Quick Actions */}
       <section className="py-16 bg-black border-t border-gray-800">
