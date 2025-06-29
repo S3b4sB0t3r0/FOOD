@@ -1,5 +1,6 @@
 // src/pages/TeamPage.js
 import React, { useEffect, useState } from 'react';
+import { Link } from "react-router-dom";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ChefHat, Users, Award, Star } from 'lucide-react';
@@ -221,12 +222,11 @@ const TeamPage = () => {
               de nuestra familia culinaria.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-[#f8b400] hover:bg-[#e6a200] text-black font-bold py-4 px-8 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg">
-                Ver Oportunidades
-              </button>
+              <Link to="/contacto">
               <button className="border-2 border-white text-white hover:bg-white hover:text-black font-bold py-4 px-8 rounded-lg transition-all duration-200">
                 Contáctanos
               </button>
+              </Link>
             </div>
           </div>
         </section>

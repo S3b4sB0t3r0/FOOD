@@ -102,16 +102,16 @@ const Footer = () => {
                   {
                     icon: MapPin,
                     text: 'Bogotá, Colombia',
-                    subtext: 'Zona Rosa - Chapinero'
+                    subtext: 'La Victoria - San Cristobal'
                   },
                   {
                     icon: Phone,
-                    text: '+57 310 286 2229',
+                    text: '+57 314 577 3241',
                     subtext: 'WhatsApp disponible'
                   },
                   {
                     icon: Mail,
-                    text: 'frankfurt28@gmail.com',
+                    text: 'elvandalogrillcolombia@gmail.com',
                     subtext: 'Respuesta en 24hrs'
                   }
                 ].map(({ icon: Icon, text, subtext }) => (
@@ -140,7 +140,7 @@ const Footer = () => {
                   </div>
                   <div className="text-sm">
                     <p className="text-white font-medium">Lun - Dom</p>
-                    <p className="text-gray-400">11:00 AM - 11:00 PM</p>
+                    <p className="text-gray-400">1:00 PM - 10:30 PM</p>
                     <p className="text-xs text-gray-500 mt-1">Delivery hasta 10:30 PM</p>
                   </div>
                 </div>
@@ -171,7 +171,7 @@ const Footer = () => {
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <p>&copy; 2025 Frank Furt. Todos los derechos reservados.</p>
+                <p>&copy; 2025 El Vandalo Grill. Todos los derechos reservados.</p>
               </div>
               
               <div className="flex items-center space-x-6 text-xs text-gray-500">
