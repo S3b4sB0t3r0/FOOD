@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from "react-router-dom";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useLayoutEffect } from 'react';
@@ -152,13 +153,6 @@ const AboutPage = () => {
               Transformamos momentos ordinarios en experiencias extraordinarias a través del sabor
             </p>
             <div className="flex justify-center space-x-4">
-              <button className="bg-black text-yellow-400 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-300 shadow-xl">
-                <FaPlay className="inline mr-2" />
-                Ver Nuestra Historia
-              </button>
-              <button className="bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transform hover:scale-105 transition-all duration-300 shadow-xl">
-                Conocer Más
-              </button>
             </div>
           </div>
         </div>
@@ -203,12 +197,6 @@ const AboutPage = () => {
                 calidad excepcional, sabor auténtico y compromiso inquebrantable con nuestros clientes.
               </p>
               <div className="flex space-x-4">
-                <button className="bg-yellow-400 text-black px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transform hover:scale-105 transition-all duration-300">
-                  Nuestra Misión
-                </button>
-                <button className="border-2 border-yellow-400 text-yellow-400 px-6 py-3 rounded-full font-bold hover:bg-yellow-400 hover:text-black transition-all duration-300">
-                  Nuestra Visión
-                </button>
               </div>
             </div>
             <div className="relative">
@@ -403,12 +391,16 @@ const AboutPage = () => {
             Únete a miles de clientes satisfechos y descubre por qué somos la mejor opción en comida rápida
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <Link to="/menu">
             <button className="bg-yellow-400 text-black px-10 py-4 rounded-full font-bold text-lg hover:bg-yellow-500 transform hover:scale-105 transition-all duration-300 shadow-xl">
               Ver Nuestro Menú
             </button>
+            </Link>
+            <Link to="/contacto">
             <button className="border-2 border-yellow-400 text-yellow-400 px-10 py-4 rounded-full font-bold text-lg hover:bg-yellow-400 hover:text-black transition-all duration-300">
               Encontrar Ubicación
             </button>
+            </Link>
           </div>
         </div>
       </section>

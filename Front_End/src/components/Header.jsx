@@ -47,8 +47,8 @@ const Header = () => {
               <div className="hidden md:block w-px h-4 bg-gray-600"></div>
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4 text-yellow-400" />
-                <span className="hidden lg:inline">L-V 8:00AM - 5:30PM / S-D 7:00AM - 5:30PM / F 9:30AM - 3:30PM</span>
-                <span className="lg:hidden">L-D 7:00AM - 5:30PM</span>
+                <span className="hidden lg:inline">L-D 1:00PM - 10:30PM</span>
+                <span className="lg:hidden">L-D 1:00PM - 10:30PM</span>
               </div>
             </div>
 

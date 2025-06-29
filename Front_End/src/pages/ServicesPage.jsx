@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { Link } from "react-router-dom";
 import { Clock, Handshake, Star, Smile, Lightbulb, Heart, ThumbsUp, ChefHat, Award, Shield, Users, Zap } from 'lucide-react';
 
 const services = [
@@ -129,12 +130,16 @@ const ServicesPage = () => {
             Descubre por qué somos la opción preferida de miles de clientes satisfechos
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/menu">
             <button className="bg-black text-white px-8 py-4 rounded-xl font-semibold hover:bg-gray-900 transition-colors duration-300 hover:shadow-lg">
               Ver Menú Completo
             </button>
+            </Link>
+            <Link to="/contacto">
             <button className="border-2 border-black text-black px-8 py-4 rounded-xl font-semibold hover:bg-black hover:text-white transition-all duration-300">
               Encuentranos
             </button>
+            </Link>
           </div>
         </div>
       </section>
