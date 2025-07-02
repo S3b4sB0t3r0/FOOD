@@ -1,9 +1,123 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ← AÑADIDO
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LOGO from '../img/LOGO.png';
 
+// Componente de Alerta personalizada
+const CustomAlert = ({ type, message, onClose }) => {
+  const getAlertStyles = () => {
+    switch (type) {
+      case 'success':
+        return 'bg-green-900/90 border-green-500 text-green-100';
+      case 'error':
+        return 'bg-red-900/90 border-red-500 text-red-100';
+      case 'warning':
+        return 'bg-yellow-900/90 border-yellow-500 text-yellow-100';
+      default:
+        return 'bg-gray-900/90 border-gray-500 text-gray-100';
+    }
+  };
+
+  const getIcon = () => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="w-5 h-5 text-green-400" />;
+      case 'error':
+        return <XCircle className="w-5 h-5 text-red-400" />;
+      case 'warning':
+        return <AlertCircle className="w-5 h-5 text-yellow-400" />;
+      default:
+        return <AlertCircle className="w-5 h-5 text-gray-400" />;
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 max-w-md p-4 border rounded-xl shadow-lg backdrop-blur-sm ${getAlertStyles()} animate-in slide-in-from-right duration-300`}>
+      <div className="flex items-start gap-3">
+        {getIcon()}
+        <div className="flex-1">
+          <p className="text-sm font-medium">{message}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-white transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Componente de validación de contraseña
+const PasswordStrength = ({ password }) => {
+  const requirements = [
+    { regex: /.{8,}/, text: 'Mínimo 8 caracteres' },
+    { regex: /[A-Z]/, text: 'Al menos una mayúscula' },
+    { regex: /[a-z]/, text: 'Al menos una minúscula' },
+    { regex: /\d/, text: 'Al menos un número' },
+    { regex: /[!@#$%^&*(),.?":{}|<>]/, text: 'Al menos un carácter especial' }
+  ];
+
+  const getStrengthColor = () => {
+    const metCount = requirements.filter(req => req.regex.test(password)).length;
+    if (metCount < 2) return 'bg-red-500';
+    if (metCount < 4) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  const getStrengthText = () => {
+    const metCount = requirements.filter(req => req.regex.test(password)).length;
+    if (metCount < 2) return 'Débil';
+    if (metCount < 4) return 'Media';
+    return 'Fuerte';
+  };
+
+  if (!password) return null;
+
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400">Seguridad:</span>
+        <span className={`text-xs font-medium ${
+          getStrengthText() === 'Fuerte' ? 'text-green-400' :
+          getStrengthText() === 'Media' ? 'text-yellow-400' : 'text-red-400'
+        }`}>
+          {getStrengthText()}
+        </span>
+        <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
+          <div 
+            className={`h-full transition-all duration-300 ${getStrengthColor()}`}
+            style={{ width: `${(requirements.filter(req => req.regex.test(password)).length / requirements.length) * 100}%` }}
+          />
+        </div>
+      </div>
+      <div className="space-y-1">
+        {requirements.map((req, index) => (
+          <div key={index} className="flex items-center gap-2">
+            {req.regex.test(password) ? (
+              <CheckCircle className="w-3 h-3 text-green-400" />
+            ) : (
+              <XCircle className="w-3 h-3 text-gray-500" />
+            )}
+            <span className={`text-xs ${req.regex.test(password) ? 'text-green-400' : 'text-gray-500'}`}>
+              {req.text}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const Login_Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,9 +128,19 @@ const Login_Register = () => {
     name: '',
     confirmPassword: ''
   });
+  const [alert, setAlert] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate(); // ← AÑADIDO
+  const navigate = useNavigate();
   const { login } = useAuth();
+
+  const showAlert = (type, message) => {
+    setAlert({ type, message });
+  };
+
+  const closeAlert = () => {
+    setAlert(null);
+  };
 
   const handleInputChange = (e) => {
     setFormData({
@@ -25,9 +149,43 @@ const Login_Register = () => {
     });
   };
 
+  const validatePassword = () => {
+    const requirements = [
+      { regex: /.{8,}/, message: 'La contraseña debe tener mínimo 8 caracteres' },
+      { regex: /[A-Z]/, message: 'La contraseña debe tener al menos una mayúscula' },
+      { regex: /[a-z]/, message: 'La contraseña debe tener al menos una minúscula' },
+      { regex: /\d/, message: 'La contraseña debe tener al menos un número' },
+      { regex: /[!@#$%^&*(),.?":{}|<>]/, message: 'La contraseña debe tener al menos un carácter especial' }
+    ];
+
+    for (const req of requirements) {
+      if (!req.regex.test(formData.password)) {
+        return req.message;
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+    setIsLoading(true);
+
+    // Validaciones
+    if (!isLogin) {
+      const passwordError = validatePassword();
+      if (passwordError) {
+        showAlert('error', passwordError);
+        setIsLoading(false);
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        showAlert('error', 'Las contraseñas no coinciden');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const endpoint = isLogin ? '/login' : '/register';
     const url = `http://localhost:5000/api/user${endpoint}`;
     
@@ -38,53 +196,81 @@ const Login_Register = () => {
           correo: formData.email,
           contraseña: formData.password,
         };
-  
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden');
-      return;
-    }
-  
+
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
-        throw new Error(data.message || 'Error desconocido');
+        throw new Error(data.message || 'Error en el servidor');
       }
-  
+
       if (isLogin) {
         // Guardar token en localStorage
         login(data.user, data.token);
-  
-        // Redirigir según el rol
-        const rol = data.user.rol;
-  
-        if (rol === 'administrador') {
-          navigate('/Admin');
-        } else if (rol === 'cliente') {
-          navigate('/');
-        } else {
-          alert('Rol no definido');
-        }
-  
+        
+        showAlert('success', `¡Bienvenido ${data.user.name}!`);
+
+        // Redirigir según el rol después de mostrar la alerta
+        setTimeout(() => {
+          const rol = data.user.rol;
+          if (rol === 'administrador') {
+            navigate('/Admin');
+          } else if (rol === 'cliente') {
+            navigate('/');
+          } else {
+            showAlert('warning', 'Rol no definido');
+          }
+        }, 1500);
+
       } else {
-        alert('Registro exitoso. Ahora puedes iniciar sesión.');
+        showAlert('success', '¡Registro exitoso! Ahora puedes iniciar sesión.');
         setIsLogin(true);
+        setFormData({
+          email: '',
+          password: '',
+          name: '',
+          confirmPassword: ''
+        });
       }
-  
+
     } catch (err) {
-      alert(err.message);
+      let errorMessage = 'Ha ocurrido un error inesperado';
+      
+      if (err.message.includes('fetch')) {
+        errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+      } else if (err.message.includes('401')) {
+        errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+      } else if (err.message.includes('400')) {
+        errorMessage = 'Datos inválidos. Verifica la información ingresada.';
+      } else if (err.message.includes('409')) {
+        errorMessage = 'Este email ya está registrado. Intenta iniciar sesión.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      showAlert('error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Alertas */}
+      {alert && (
+        <CustomAlert
+          type={alert.type}
+          message={alert.message}
+          onClose={closeAlert}
+        />
+      )}
+
       {/* Fondos y efectos */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-transparent"></div>
@@ -201,6 +387,9 @@ const Login_Register = () => {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {!isLogin && (
+                  <PasswordStrength password={formData.password} />
+                )}
               </div>
 
               {!isLogin && (
@@ -215,11 +404,32 @@ const Login_Register = () => {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 focus:outline-none transition-all duration-300"
+                      className={`w-full pl-12 pr-4 py-4 bg-gray-800/50 border rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-yellow-400/20 focus:outline-none transition-all duration-300 ${
+                        formData.confirmPassword && formData.password !== formData.confirmPassword
+                          ? 'border-red-500 focus:border-red-500'
+                          : formData.confirmPassword && formData.password === formData.confirmPassword
+                          ? 'border-green-500 focus:border-green-500'
+                          : 'border-gray-700 focus:border-yellow-400'
+                      }`}
                       placeholder="Confirma tu contraseña"
                       required
                     />
                   </div>
+                  {formData.confirmPassword && (
+                    <div className="mt-2 flex items-center gap-2">
+                      {formData.password === formData.confirmPassword ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span className="text-sm text-green-400">Las contraseñas coinciden</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4 text-red-400" />
+                          <span className="text-sm text-red-400">Las contraseñas no coinciden</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -235,7 +445,7 @@ const Login_Register = () => {
                   <button
                     type="button"
                     className="text-sm text-yellow-400 hover:text-yellow-300"
-                    onClick={() => navigate('/restablecer')} // ← AJUSTADO
+                    onClick={() => navigate('/restablecer')}
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
@@ -244,15 +454,23 @@ const Login_Register = () => {
 
               <button
                 type="submit"
-                className="group w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-4 px-6 rounded-xl font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-yellow-400/25 flex items-center justify-center"
+                disabled={isLoading}
+                className="group w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-4 px-6 rounded-xl font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-yellow-400/25 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                <span className="mr-2">
-                  {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
-                </span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black mr-2"></div>
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="mr-2">
+                      {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                    </span>
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </button>
-
-             
             </form>
           </div>
 
