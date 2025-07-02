@@ -39,12 +39,11 @@ function App() {
             <Route path="/restablecer" element={<PasswordReset />} />
             <Route path="/cambio" element={<PasswordChange />} />
 
-            {/* 🔐 Ruta protegida solo para administradores */}
+            {/* Ruta protegida solo para administradores */}
             <Route element={<RutaProtegida rolRequerido="administrador" />}>
               <Route path="/Admin" element={<FoodChainDashboard />} />
             </Route>
 
-            {/* Ejemplo adicional para usuarios autenticados (sin importar rol) */}
             {/* 
             <Route element={<RutaProtegida />}>
               <Route path="/cuenta" element={<Cuenta />} />

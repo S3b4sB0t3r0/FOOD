@@ -11,6 +11,28 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: 'Todos los campos son obligatorios' });
     }
 
+    // Validación de nombre (solo letras y espacios)
+    const nameRegex = /^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]+$/;
+    if (!nameRegex.test(name)) {
+      return res.status(400).json({ message: 'El nombre solo puede contener letras y espacios' });
+    }
+
+    // Validación de correo (formato básico con @ y dominio)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo)) {
+      return res.status(400).json({ message: 'El correo electrónico no es válido' });
+    }
+
+    // Validación de contraseña:
+    // Mínimo 8 caracteres, al menos una mayúscula, una minúscula, un número y un símbolo
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!passwordRegex.test(contraseña)) {
+      return res.status(400).json({
+        message:
+          'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo'
+      });
+    }
+
     // Verificar si el usuario ya existe
     const existingUser = await User.findOne({ correo });
     if (existingUser) {
@@ -41,6 +63,7 @@ export const register = async (req, res) => {
     res.status(500).json({ message: 'Error en el servidor' });
   }
 };
+
 
 export const login = async (req, res) => {
   try {
