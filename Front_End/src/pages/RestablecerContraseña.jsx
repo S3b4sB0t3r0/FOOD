@@ -22,7 +22,7 @@ const PasswordReset = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ correo: email }) // ← el backend espera `correo`, no `email`
+        body: JSON.stringify({ correo: email }) 
       });
   
       const data = await response.json();
