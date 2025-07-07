@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowRight, Check, AlertCircle, Shield } from 'lucide-react';
-
 import LOGO from '../img/LOGO.png';
 
 const PasswordChange = () => {
+  const { token } = useParams(); // ✅ usar token desde la URL
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: ''
@@ -19,13 +22,7 @@ const PasswordChange = () => {
     hasSpecial: false,
     hasUpper: false
   });
-  // Función para simular navegación - reemplazar con tu lógica de routing
-  const handleNavigation = (path) => {
-    console.log(`Navegando a: ${path}`);
-    // Aquí iría tu lógica de navegación real
-  };
 
-  // Validar contraseña en tiempo real
   const validatePassword = (password) => {
     const validations = {
       minLength: password.length >= 8,
@@ -54,30 +51,43 @@ const PasswordChange = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
-    // Validaciones
+  
     if (!validatePassword(formData.password)) {
       setError('La contraseña no cumple con todos los requisitos.');
       setIsLoading(false);
       return;
     }
-
+  
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden.');
       setIsLoading(false);
       return;
     }
-
+  
     try {
-      // Aquí iría la lógica real de cambio de contraseña
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('http://localhost:5000/api/user/recuperar/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: token, // <-- este token viene de useParams()
+          nuevaContraseña: formData.password
+        })
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al cambiar la contraseña');
+      }
+  
       setIsSuccess(true);
     } catch (err) {
-      setError('Error al cambiar la contraseña. Inténtalo de nuevo.');
+      setError(err.message || 'Error al cambiar la contraseña. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   // Pantalla de éxito
   if (isSuccess) {
@@ -118,7 +128,7 @@ const PasswordChange = () => {
               </div>
 
               <button
-                onClick={() => handleNavigation('/LR')}
+                onClick={() => navigate('/LR')}
                 className="group w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-4 px-6 rounded-xl font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-yellow-400/25 flex items-center justify-center"
               >
                 <span className="mr-2">Iniciar Sesión</span>

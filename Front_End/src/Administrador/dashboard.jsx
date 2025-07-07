@@ -551,8 +551,8 @@ return (
     {/* Sidebar */}
     <div className="w-64 bg-gray-900 text-white flex flex-col">
       <div className="p-6">
-        <h1 className="text-xl font-bold text-yellow-400">FoodChain Pro</h1>
-        <p className="text-gray-400 text-sm mt-1">Dashboard Ejecutivo</p>
+        <h1 className="text-xl font-bold text-yellow-400">El Vandalo Grill</h1>
+        <p className="text-gray-400 text-sm mt-1">Panel Administrativo</p>
       </div>
       
       <nav className="flex-1 px-4">
