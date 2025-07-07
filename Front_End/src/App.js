@@ -8,7 +8,6 @@ import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import RutaProtegida from './context/RutaProtegida';
 
-
 // pages
 import PaginaPrincipal from './pages/PaginaPrincipal';
 import AboutPage from './pages/AboutPage';
@@ -20,6 +19,7 @@ import ContactPage from './pages/Contacto';
 import Login_Register from './pages/L-R';
 import PasswordReset from './pages/RestablecerContraseña';
 import PasswordChange from './pages/CambioContraseña';
+import ProfilePage from './pages/Cuenta';
 import FoodChainDashboard from './Administrador/dashboard';
 
 function App() {
@@ -31,24 +31,23 @@ function App() {
             <Route path="/" element={<PaginaPrincipal />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/menu" element={<MenuPage />} />
-            <Route path="/cart" element={<CartPage />} />
             <Route path="/equipo" element={<TeamPage />} />
             <Route path="/servicios" element={<ServicesPage />} />
             <Route path="/contacto" element={<ContactPage />} />
             <Route path="/LR" element={<Login_Register />} />
             <Route path="/restablecer" element={<PasswordReset />} />
-            <Route path="/cambio" element={<PasswordChange />} />
+            <Route path="/recuperar/:token" element={<PasswordChange />} />
 
             {/* Ruta protegida solo para administradores */}
             <Route element={<RutaProtegida rolRequerido="administrador" />}>
               <Route path="/Admin" element={<FoodChainDashboard />} />
             </Route>
 
-            {/* 
+            {/* Rutas protegidas para clientes */}
             <Route element={<RutaProtegida />}>
-              <Route path="/cuenta" element={<Cuenta />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/cuenta" element={<ProfilePage />} />
             </Route>
-            */}
           </Routes>
         </Router>
       </CartProvider>

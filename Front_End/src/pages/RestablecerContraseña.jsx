@@ -15,18 +15,30 @@ const PasswordReset = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
-    // Simular envío de email
+  
     try {
-      // Aquí iría la lógica real de envío
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('http://localhost:5000/api/user/recuperar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ correo: email }) // ← el backend espera `correo`, no `email`
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al enviar el correo');
+      }
+  
       setIsSuccess(true);
     } catch (err) {
-      setError('Hubo un error al enviar el correo. Inténtalo de nuevo.');
+      setError(err.message || 'Hubo un error al enviar el correo. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   const handleBackToLogin = () => {
     // Aquí iría la navegación de vuelta al login

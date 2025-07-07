@@ -238,13 +238,17 @@ const Header = () => {
         </div>
 
               {/* Botón de compra */}
-              <Link
-                to="/cart"
-                className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-2 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-yellow-400/25"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span>Comprar Ahora</span>
-              </Link>
+                {/* Botón de compra (solo visible si hay sesión iniciada) */}
+                {user && (
+                  <Link
+                    to="/cart"
+                    className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-2 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-yellow-400/25"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Comprar Ahora</span>
+                  </Link>
+                )}
+
 
               {/* Menu toggle mobile */}
               <button
@@ -313,14 +317,18 @@ const Header = () => {
               </Link>
 
               {/* Botón comprar mobile */}
-              <Link
-                to="/cart"
-                onClick={handleLinkClick}
-                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-3 px-4 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 mt-4"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span>Comprar Ahora</span>
-              </Link>
+                {/* Botón comprar mobile (solo visible si hay sesión iniciada) */}
+                {user && (
+                  <Link
+                    to="/cart"
+                    onClick={handleLinkClick}
+                    className="flex items-center justify-center space-x-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-3 px-4 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 mt-4"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Comprar Ahora</span>
+                  </Link>
+                )}
+
             </div>
           </div>
         </div>
