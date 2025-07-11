@@ -3,10 +3,10 @@ import {
   Star, Clock, ChefHat, Flame, Coffee,
   Utensils, Award, Heart
 } from 'lucide-react';
-
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-
+// Importar el contexto del carrito
+import { useCart, parsePrice } from '../context/CartContext';
 // Mapeo de iconos por nombre
 const iconMap = {
   Star: <Star className="w-5 h-5" />,
@@ -22,6 +22,9 @@ const iconMap = {
 const MenuPage = () => {
   const [menuData, setMenuData] = useState({});
   const [activeCategory, setActiveCategory] = useState('Entradas');
+
+  // ✅ Usar el método addToCart del contexto
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchMenu = async () => {
@@ -95,13 +98,13 @@ const MenuPage = () => {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {menuData[category].map((item, index) => (
-                    <div
-                      key={index}
-                      className="group relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden hover:border-yellow-400/50 transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg hover:shadow-yellow-400/10"
-                    >
+                {menuData[category].map((item) => (
+                      <div
+                        key={item.title}
+                        className="group relative bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden hover:border-yellow-400/50 transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg hover:shadow-yellow-400/10"
+                      >
                       <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      
+
                       <div className="relative h-32 overflow-hidden">
                         <img 
                           src={item.image} 
@@ -136,9 +139,24 @@ const MenuPage = () => {
                         <p className="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300 line-clamp-2 mb-3">
                           {item.description}
                         </p>
-                        <button className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-semibold py-2 rounded-lg text-xs hover:shadow-md hover:shadow-yellow-400/25 transition-all duration-300 transform hover:scale-105">
+
+                        <button
+                          onClick={() => {
+                            console.log('Producto que se agrega:', item);
+                            console.log('Precio original:', item.price);
+                            const priceNumber = parsePrice(item.price);
+                            console.log('Precio convertido a número:', priceNumber);
+
+                            addToCart({
+                              ...item,
+                              price: priceNumber
+                            });
+                          }}
+                          className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-semibold py-2 rounded-lg text-xs hover:shadow-md hover:shadow-yellow-400/25 transition-all duration-300 transform hover:scale-105"
+                        >
                           Agregar
                         </button>
+
                       </div>
                       <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 group-hover:w-full transition-all duration-300"></div>
                     </div>

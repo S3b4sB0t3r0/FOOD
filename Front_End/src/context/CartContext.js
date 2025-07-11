@@ -1,38 +1,57 @@
-// src/context/CartContext.js
 import React, { createContext, useContext, useState } from 'react';
-
 const CartContext = createContext();
-
-export function useCart() {
-  return useContext(CartContext);
-}
+export const useCart = () => useContext(CartContext);
+// Convierte "$5.000", "5000" o 5000 a número 5000 de forma segura
+export const parsePrice = (priceStr) => {
+  if (typeof priceStr === 'number') return priceStr;
+  return Number(priceStr.replace(/[$.]/g, ''));
+};
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
+  const [cart, setCart] = useState([]);
 
-  const addToCart = (item) => {
-    setCartItems((prev) => {
-      const exists = prev.find((i) => i.id === item.id);
-      if (exists) {
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+
+  const addToCart = (product) => {
+    const id = product.title; 
+    const price = parsePrice(product.price);
+
+    setCart((currentCart) => {
+      const existing = currentCart.find(item => item.id === id);
+      if (existing) {
+        return currentCart.map(item =>
+          item.id === id ? { ...item, quantity: item.quantity + 1 } : item
         );
       } else {
-        return [...prev, { ...item, quantity: 1 }];
+        return [...currentCart, {
+          id,
+          title: product.title,
+          description: product.description || '',
+          price,
+          image: product.image || '',
+          quantity: 1,
+        }];
       }
     });
   };
 
   const removeFromCart = (id) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== id));
+    setCart((currentCart) => currentCart.filter(item => item.id !== id));
   };
 
-  const clearCart = () => setCartItems([]);
+  const updateQuantity = (id, delta) => {
+    setCart((currentCart) =>
+      currentCart.map(item => {
+        if (item.id === id) {
+          const newQuantity = item.quantity + delta;
+          return { ...item, quantity: newQuantity > 0 ? newQuantity : 1 };
+        }
+        return item;
+      })
+    );
+  };
 
   return (
-    <CartContext.Provider
-      value={{ cartItems, addToCart, removeFromCart, clearCart }}
-    >
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity }}>
       {children}
     </CartContext.Provider>
   );
