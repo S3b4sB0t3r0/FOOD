@@ -26,6 +26,7 @@ import {
   Filter
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import ProductUpdateModal from '../components/ProductUpdateModal';
 
 const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -60,16 +61,32 @@ const Dashboard = () => {
     { name: 'D', ingresos: 16500, gastos: 9800 }
   ];
 
-  // Datos de inventario
-  const inventoryItems = [
-    { id: 1, name: 'Carne de Res', stock: 45, min: 20, unit: 'kg', price: 25000, status: 'ok' },
-    { id: 2, name: 'Papas Fritas', stock: 12, min: 15, unit: 'kg', price: 8000, status: 'low' },
-    { id: 3, name: 'Bebidas Coca-Cola', stock: 89, min: 30, unit: 'unidades', price: 3500, status: 'ok' },
-    { id: 4, name: 'Pollo', stock: 8, min: 10, unit: 'kg', price: 18000, status: 'critical' },
-    { id: 5, name: 'Pan de Hamburguesa', stock: 156, min: 50, unit: 'unidades', price: 1200, status: 'ok' },
-    { id: 6, name: 'Queso Americano', stock: 25, min: 15, unit: 'kg', price: 15000, status: 'ok' },
-    { id: 7, name: 'Lechuga', stock: 8, min: 12, unit: 'kg', price: 4500, status: 'low' }
-  ];
+ // Datos de inventario
+const [productos, setProductos] = useState([]);
+const [isModalOpen, setIsModalOpen] = useState(false);
+const [selectedProduct, setSelectedProduct] = useState(null);
+
+useEffect(() => {
+  const fetchProductos = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/menu');
+      const data = await res.json();
+      setProductos(data);
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+    }
+  };
+
+  fetchProductos();
+}, []);
+
+const parsePrice = (priceStr) => {
+  if (typeof priceStr === 'number') return priceStr;
+  return Number(priceStr.replace(/[$.]/g, ''));
+};
+
+
+
 
   // Usuarios
   // Busqueda general de usuarios
@@ -111,6 +128,7 @@ const Dashboard = () => {
     }
   };
   
+
 
   // Datos de pedidos/yapis
   const orders = [
@@ -357,11 +375,8 @@ const Dashboard = () => {
       <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-white">Inventario General</h3>
-          <button className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
-            Actualizar Stock
-          </button>
         </div>
-        
+  
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -376,25 +391,36 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {inventoryItems.map(item => (
-                <tr key={item.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                  <td className="py-3 px-4 font-medium text-white">{item.name}</td>
-                  <td className="py-3 px-4 text-gray-300">{item.stock}</td>
-                  <td className="py-3 px-4 text-gray-300">{item.min}</td>
-                  <td className="py-3 px-4 text-gray-300">{item.unit}</td>
-                  <td className="py-3 px-4 text-yellow-400">${item.price.toLocaleString()}</td>
+              {productos.map(producto => (
+                <tr key={producto._id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                  <td className="py-3 px-4 font-medium text-white">{producto.title}</td>
+                  <td className="py-3 px-4 text-gray-300">{producto.stock}</td>
+                  <td className="py-3 px-4 text-gray-300">{producto.minimo}</td>
+                  <td className="py-3 px-4 text-gray-300">{producto.unidad}</td>
+                  <td className="py-3 px-4 text-yellow-400">
+                    ${parsePrice(producto.price).toLocaleString()}
+                  </td>
+
+                  {/* Estado del producto: Activo/Inactivo */}
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      item.status === 'ok' ? 'bg-green-100 text-green-800' :
-                      item.status === 'low' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
+                      producto.estado
+                        ? 'bg-green-600 text-white'
+                        : 'bg-red-600 text-white'
                     }`}>
-                      {item.status === 'ok' ? 'Normal' : 
-                       item.status === 'low' ? 'Bajo' : 'Crítico'}
+                      {producto.estado ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
+
                   <td className="py-3 px-4">
-                    <button className="text-yellow-400 hover:text-yellow-300 text-sm font-medium">
+                    <button
+                      onClick={() => {
+                        console.log('abriendo modal', producto);
+                        setSelectedProduct(producto);
+                        setIsModalOpen(true);
+                      }}
+                      className="text-yellow-400 hover:text-yellow-300 text-sm font-medium"
+                    >
                       Reabastecer
                     </button>
                   </td>
@@ -412,9 +438,6 @@ const Dashboard = () => {
       <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-white">Gestión de Usuarios</h3>
-          <button className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
-            Agregar Usuario
-          </button>
         </div>
   
         <div className="overflow-x-auto">
@@ -725,6 +748,29 @@ className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-a
 </ul>
 </nav>
 </aside>
+
+{activeSection === 'inventory' && (
+    <>
+      <ProductUpdateModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        product={selectedProduct}
+        onUpdate={(updated) => {
+          setProductos((prev) => {
+            const index = prev.findIndex((p) => p._id === updated._id);
+            if (index !== -1) {
+              const copia = [...prev];
+              copia[index] = updated;
+              return copia;
+            } else {
+              return [...prev, updated];
+            }
+          });
+        }}
+      />
+    </>
+  )}
+  
 
 {/* Main Content */}
 <main className="flex-1 p-6">
