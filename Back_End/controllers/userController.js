@@ -277,3 +277,49 @@ export const cambiarPasswordToken = async (req, res) => {
     res.status(500).json({ message: 'Error al cambiar la contraseña', error: error.message });
   }
 };
+
+// Todos los Uusuarios Administrador 
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-contraseña -__v -token');
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener los usuarios' });
+  }
+};
+
+// Cambio de estado Adminsitrador 
+export const toggleEstado = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    user.estado = !user.estado;
+    await user.save();
+
+    res.json({
+      message: `Estado cambiado a ${user.estado ? 'Activo' : 'Inactivo'}`,
+      user: {
+        id: user._id,
+        name: user.name,
+        estado: user.estado
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al cambiar el estado' });
+  }
+};
+
+// Eliminar usuario Adminsitrador 
+export const eliminarUsuario = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    res.status(200).json({ message: 'Usuario eliminado correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al eliminar el usuario' });
+  }
+};

@@ -6,17 +6,24 @@ import {
   updateProfile,
   updatePassword,
   solicitarRecuperacion,
-  cambiarPasswordToken
+  cambiarPasswordToken,
+  getAllUsers,
+  toggleEstado,
+  eliminarUsuario
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+router.get('/', getAllUsers);
 router.post('/register', register);
 router.post('/login', login);
 router.post('/recuperar', solicitarRecuperacion); 
 router.post('/recuperar/reset', cambiarPasswordToken); 
+router.put('/:id/estado', toggleEstado);
+router.delete('/:id', eliminarUsuario); // 👈 nueva ruta
+
 
 
 // Rutas protegidas con JWT
