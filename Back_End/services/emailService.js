@@ -90,4 +90,23 @@ export const enviarCorreoContacto = async (correoDestino, nombre, asunto, mensaj
   
     await transporter.sendMail(mailOptions);
   };
+
+  export const enviarCorreoPedido = async (correoDestino, descripcion, total) => {
+    const mailOptions = {
+      from: '"El Vándalo Grill 🍔🔥" <elvandalogrillcolombia@gmail.com>',
+      to: correoDestino,
+      subject: '🧾 Confirmación de tu pedido',
+      html: `
+        <div style="font-family: Arial, sans-serif; background: #fff3e0; padding: 20px; border-radius: 10px; border: 1px solid #ffb74d; max-width: 600px; margin: auto;">
+          <h2 style="color: #d84315;">¡Gracias por tu pedido!</h2>
+          <p>Hemos recibido tu pedido con la siguiente descripción:</p>
+          <blockquote style="background: #ffe0b2; padding: 10px; border-left: 4px solid #fb8c00;">${descripcion}</blockquote>
+          <p><strong>Total:</strong> ${total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</p>
+          <p>Te estaremos notificando el estado de tu pedido pronto.</p>
+          <p style="text-align: center; font-size: 14px; color: #888;">El Vándalo Grill 🍔🔥</p>
+        </div>
+      `
+    };
   
+    await transporter.sendMail(mailOptions);
+  };
