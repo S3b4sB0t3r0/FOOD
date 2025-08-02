@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Plus, Minus, Trash2, ShoppingBag, CreditCard,
   ArrowLeft, CheckCircle, Star, Truck
@@ -8,9 +8,15 @@ import {
 import { useCart } from '../context/CartContext';
 
 const CartPage = () => {
-  const { cart, updateQuantity, removeFromCart } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const navigate = useNavigate();
+
+  // Observaciones
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [observations, setObservations] = useState({});
+  const [showModal, setShowModal] = useState(false);
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat('es-CO', {
@@ -24,27 +30,101 @@ const CartPage = () => {
   const total = subtotal + delivery;
   const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const handleCheckout = () => {
+  const submitOrder = async () => {
+    if (cart.length === 0) return;
+  
     setIsProcessing(true);
-    setTimeout(() => {
+  
+    const orderItems = cart.map(item => ({
+      id: item.id,
+      title: item.title,
+      price: item.price,
+      quantity: item.quantity,
+      observation: observations[item.id] || "",
+    }));
+  
+    const orderDescription = orderItems
+      .map(item => `${item.quantity} ${item.title} (${item.quantity * item.price})`)
+      .join(', ');
+  
+    // Obtener email desde localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    const customerEmail = user?.email || user?.correo;
+  
+    if (!customerEmail) {
+      alert("Por favor, inicia sesión o proporciona un email para completar el pedido.");
       setIsProcessing(false);
-      setOrderSuccess(true);
-      setTimeout(() => setOrderSuccess(false), 4000);
-    }, 2000);
+      return;
+    }
+  
+    const payload = {
+      items: orderItems,
+      totalPrice: total,
+      orderDescription,
+      status: 'pendiente',
+      customerEmail,
+    };
+  
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        setOrderSuccess(true);
+        setTimeout(() => {
+          setOrderSuccess(false);
+          clearCart();
+          navigate('/');
+        }, 5000);
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      alert("Error inesperado al enviar el pedido.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  
+
+  // Modal control
+  const handleOpenModal = (item) => {
+    setSelectedItem(item);
+    setShowModal(true);
   };
 
+  const handleObservationChange = (e) => {
+    setObservations((prev) => ({
+      ...prev,
+      [selectedItem.id]: e.target.value,
+    }));
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedItem(null);
+  };
   return (
     <div className="min-h-screen bg-black">
- {/* Enhanced Header */}
- <header className="relative bg-gradient-to-br from-black via-gray-900 to-black border-b border-gray-800">
+      <header className="relative bg-gradient-to-br from-black via-gray-900 to-black border-b border-gray-800">
         <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-transparent"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center space-x-4">
               <Link to="/">
-              <button className="group p-3 hover:bg-gray-800 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/25">
-                <ArrowLeft className="h-6 w-6 text-gray-400 group-hover:text-yellow-400 transition-colors duration-300" />
-              </button>
+                <button className="group p-3 hover:bg-gray-800 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/25">
+                  <ArrowLeft className="h-6 w-6 text-gray-400 group-hover:text-yellow-400 transition-colors duration-300" />
+                </button>
               </Link>
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-400/25">
@@ -88,18 +168,12 @@ const CartPage = () => {
           </div>
         ) : (
           <div className="lg:grid lg:grid-cols-3 lg:gap-12">
-            {/* Cart Items */}
             <div className="lg:col-span-2">
               <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-3xl overflow-hidden shadow-2xl">
-                {/* ... encabezado de artículos ... */}
                 <div className="divide-y divide-gray-800">
                   {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group p-8 hover:bg-gradient-to-r hover:from-yellow-400/5 hover:to-transparent transition-all duration-500"
-                    >
+                    <div key={item.id} className="group p-8 hover:bg-gradient-to-r hover:from-yellow-400/5 hover:to-transparent transition-all duration-500">
                       <div className="flex items-start space-x-6">
-                        {/* Imagen y detalles */}
                         <div className="flex-shrink-0 relative">
                           <img
                             src={item.image}
@@ -114,7 +188,21 @@ const CartPage = () => {
                                 {item.title}
                               </h3>
                               <p className="text-gray-400 mb-4 leading-relaxed">{item.description}</p>
-                              <div className="flex items-center space-x-6">
+
+                              <button
+                                onClick={() => handleOpenModal(item)}
+                                className="mb-4 text-sm text-yellow-400 hover:underline hover:text-yellow-300 transition"
+                              >
+                                Agregar observación
+                              </button>
+
+                              {observations[item.id] && (
+                                <p className="text-sm text-gray-400 italic">
+                                  Observación: <span className="text-yellow-400">{observations[item.id]}</span>
+                                </p>
+                              )}
+
+                              <div className="flex items-center space-x-6 mt-3">
                                 <span className="text-xl font-bold text-yellow-400">
                                   {formatCurrency(Number(item.price))}
                                 </span>
@@ -122,7 +210,7 @@ const CartPage = () => {
                                   <button
                                     onClick={() => updateQuantity(item.id, -1)}
                                     disabled={item.quantity <= 1}
-                                    className="p-3 hover:bg-yellow-400 hover:text-black transition-all duration-300 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                                    className="p-3 hover:bg-yellow-400 hover:text-black transition-all duration-300 disabled:opacity-50"
                                   >
                                     <Minus className="h-4 w-4" />
                                   </button>
@@ -142,7 +230,6 @@ const CartPage = () => {
                               <button
                                 onClick={() => removeFromCart(item.id)}
                                 className="group/delete p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-red-500/25"
-                                title="Eliminar artículo"
                               >
                                 <Trash2 className="h-5 w-5 group-hover/delete:scale-110 transition-transform duration-300" />
                               </button>
@@ -166,7 +253,6 @@ const CartPage = () => {
             <div className="mt-12 lg:mt-0">
               <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-3xl shadow-2xl sticky top-8 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-transparent"></div>
-                
                 <div className="relative p-8 border-b border-gray-800">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center">
@@ -178,7 +264,7 @@ const CartPage = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="relative p-8">
                   <div className="space-y-6 mb-8">
                     <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-800/50 to-transparent rounded-xl">
@@ -195,9 +281,7 @@ const CartPage = () => {
                     <div className="border-t border-gray-700 pt-6">
                       <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-400/10 to-transparent rounded-xl border border-yellow-400/20">
                         <span className="text-xl font-bold text-white">Total</span>
-                        <span className="text-3xl font-bold text-yellow-400">
-                          {formatCurrency(total)}
-                        </span>
+                        <span className="text-3xl font-bold text-yellow-400">{formatCurrency(total)}</span>
                       </div>
                     </div>
                   </div>
@@ -210,24 +294,25 @@ const CartPage = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <button
-                        onClick={handleCheckout}
-                        disabled={isProcessing}
-                        className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-5 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-yellow-400/25 transition-all duration-300 hover:transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-3"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-                            <span>Procesando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CreditCard className="h-5 w-5" />
-                            <span>Proceder al pago</span>
-                          </>
-                        )}
-                      </button>
-                      
+                    <button
+                      onClick={submitOrder}
+                      disabled={isProcessing}
+                      className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-5 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-yellow-400/25 transition-all duration-300 hover:transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-3"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                          <span>Procesando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="h-5 w-5" />
+                          <span>Proceder al pago</span>
+                        </>
+                      )}
+                    </button>
+
+
                       <Link
                         to="/menu"
                         className="w-full block border-2 border-gray-700 text-gray-300 py-4 px-6 rounded-xl font-semibold hover:border-yellow-400 hover:text-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/10 text-center"
@@ -236,39 +321,49 @@ const CartPage = () => {
                       </Link>
                     </div>
                   )}
-
-                  <div className="mt-8 p-6 bg-gradient-to-r from-yellow-400/10 to-transparent rounded-2xl border border-yellow-400/20">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full shadow-lg shadow-yellow-400/25"></div>
-                      <span className="text-sm font-bold text-yellow-400">Envío gratis disponible</span>
-                    </div>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      En pedidos superiores a $25.000. Tu pedido califica para envío gratuito. 
-                      Tiempo estimado: 30-45 minutos.
-                    </p>
-                  </div>
-
-                  {/* Trust Indicators */}
-                  <div className="mt-6 grid grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-gradient-to-br from-gray-800/50 to-transparent rounded-xl">
-                      <Star className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
-                      <span className="text-xs text-gray-400">Calidad</span>
-                    </div>
-                    <div className="text-center p-3 bg-gradient-to-br from-gray-800/50 to-transparent rounded-xl">
-                      <Truck className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
-                      <span className="text-xs text-gray-400">Entrega</span>
-                    </div>
-                    <div className="text-center p-3 bg-gradient-to-br from-gray-800/50 to-transparent rounded-xl">
-                      <CheckCircle className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
-                      <span className="text-xs text-gray-400">Garantía</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Modal Observaciones */}
+      {showModal && selectedItem && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div className="bg-gray-900 rounded-2xl p-8 shadow-2xl w-full max-w-md border border-yellow-400/20 relative">
+            <h2 className="text-white text-xl font-bold mb-4">
+              Observaciones para: <span className="text-yellow-400">{selectedItem.title}</span>
+            </h2>
+            <textarea
+              className="w-full h-32 p-4 bg-black border border-gray-700 rounded-lg text-white resize-none focus:outline-none focus:border-yellow-400"
+              placeholder="Ej. Sin cebolla, extra queso..."
+              value={observations[selectedItem.id] || ''}
+              onChange={handleObservationChange}
+            />
+            <div className="flex justify-end mt-4 space-x-3">
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 rounded-lg bg-yellow-400 text-black font-bold hover:bg-yellow-300"
+              >
+                Guardar
+              </button>
+            </div>
+            <button
+              onClick={handleCloseModal}
+              className="absolute top-2 right-2 text-gray-400 hover:text-yellow-400"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

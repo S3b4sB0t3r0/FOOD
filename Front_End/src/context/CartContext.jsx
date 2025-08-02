@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState } from 'react';
+
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
+
 // Convierte "$5.000", "5000" o 5000 a número 5000 de forma segura
 export const parsePrice = (priceStr) => {
   if (typeof priceStr === 'number') return priceStr;
@@ -10,9 +12,8 @@ export const parsePrice = (priceStr) => {
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
-
   const addToCart = (product) => {
-    const id = product.title; 
+    const id = product.title; // Usamos el título como identificador
     const price = parsePrice(product.price);
 
     setCart((currentCart) => {
@@ -22,14 +23,17 @@ export const CartProvider = ({ children }) => {
           item.id === id ? { ...item, quantity: item.quantity + 1 } : item
         );
       } else {
-        return [...currentCart, {
-          id,
-          title: product.title,
-          description: product.description || '',
-          price,
-          image: product.image || '',
-          quantity: 1,
-        }];
+        return [
+          ...currentCart,
+          {
+            id,
+            title: product.title,
+            description: product.description || '',
+            price,
+            image: product.image || '',
+            quantity: 1,
+          }
+        ];
       }
     });
   };
@@ -50,8 +54,12 @@ export const CartProvider = ({ children }) => {
     );
   };
 
+  const clearCart = () => {
+    setCart([]);
+  };
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart }}>
       {children}
     </CartContext.Provider>
   );

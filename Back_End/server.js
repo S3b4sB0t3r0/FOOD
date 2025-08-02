@@ -7,6 +7,7 @@ import contactoRoutes from './routes/contactoRoutes.js';
 import equipoRoutes from './routes/equipoRoutes.js';
 import productoRoutes from './routes/productoRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 import connectDB from './config/db.js';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use(express.json());
 connectDB();
 
 // Rutas
+app.use('/api/orders', orderRoutes);
 app.use('/api/contacto', contactoRoutes);
 app.use('/api', equipoRoutes);
 app.use('/api', productoRoutes);
