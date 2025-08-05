@@ -6,7 +6,7 @@ import {
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-// Componente de validación de contraseña (MOVIDO FUERA DE CustomAlert)
+// Componente de validación de contraseña
 const PasswordStrength = ({ password }) => {
   const requirements = [
     { regex: /.{8,}/, text: 'Mínimo 8 caracteres' },
@@ -114,32 +114,7 @@ const ProfilePage = () => {
     fechaRegistro: ''
   });
 
-  const [purchaseHistory, setPurchaseHistory] = useState([
-    {
-      id: 1,
-      fecha: '15 de junio de 2025',
-      estado: 'Entregado',
-      productos: ['Hamburguesa Doble', 'Papas Grandes', 'Coca-Cola 600ml'],
-      direccion: 'Calle 123 #45-67, Medellín',
-      total: 34000
-    },
-    {
-      id: 2,
-      fecha: '10 de junio de 2025',
-      estado: 'En Proceso',
-      productos: ['Perro Caliente Clásico', 'Gaseosa Hit'],
-      direccion: 'Carrera 89 #21-45, Medellín',
-      total: 22000
-    },
-    {
-      id: 3,
-      fecha: '5 de junio de 2025',
-      estado: 'Cancelado',
-      productos: ['Hamburguesa BBQ', 'Limonada Natural'],
-      direccion: 'Transversal 74 #65-90, Medellín',
-      total: 26000
-    }
-  ]);
+  const [purchaseHistory, setPurchaseHistory] = useState([]);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -154,57 +129,64 @@ const ProfilePage = () => {
     direccion: ''
   });
 
-  const API_BASE = 'http://localhost:5000/api/user';
-
+  const API_BASE = 'http://localhost:5000/api';
   const token = localStorage.getItem('token');
 
-  // Función para mostrar alertas
   const showAlert = (type, message) => {
     setAlert({ type, message });
-    setTimeout(() => setAlert(null), 5000); // Auto-cerrar después de 5 segundos
+    setTimeout(() => setAlert(null), 5000);
   };
 
-  // Función para cerrar alerta manualmente
   const closeAlert = () => {
     setAlert(null);
   };
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/perfil`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = res.data.user;
-
-        const formattedDate = new Date(data.createdAt).toLocaleDateString('es-CO', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-
-        setUserInfo({
-          name: data.name,
-          email: data.correo,
-          telefono: data.telefono || '',
-          direccion: data.direccion || '',
-          fechaRegistro: formattedDate
-        });
-
-        setEditForm({
-          name: data.name,
-          email: data.correo,
-          telefono: data.telefono || '',
-          direccion: data.direccion || ''
-        });
-      } catch (err) {
-        console.error('Error al cargar el perfil:', err);
-        showAlert('error', 'No se pudo cargar la información del perfil');
-      }
-    };
-
-    if (token) fetchUser();
-  }, [token]);
+        const fetchUserDataAndOrders = async () => {
+          if (!token) return;
+      
+          try {
+            // Paso 1: Cargar información del usuario
+            const userRes = await axios.get(`${API_BASE}/user/perfil`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const userData = userRes.data.user;
+      
+            const formattedDate = new Date(userData.createdAt).toLocaleDateString('es-CO', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+      
+            setUserInfo({
+              name: userData.name,
+              email: userData.correo,
+              telefono: userData.telefono || '',
+              direccion: userData.direccion || '',
+              fechaRegistro: formattedDate
+            });
+      
+            setEditForm({
+              name: userData.name,
+              email: userData.correo,
+              telefono: userData.telefono || '',
+              direccion: userData.direccion || ''
+            });
+      
+            // Paso 2: Cargar historial de pedidos
+            // Esta es la llamada correcta, enviando el correo en la URL
+            const ordersRes = await axios.get(`${API_BASE}/orders/getorderuser?email=${userData.correo}`);
+            
+            setPurchaseHistory(ordersRes.data.orders);
+      
+          } catch (err) {
+            console.error('Error al cargar el perfil o las órdenes:', err);
+            showAlert('error', 'No se pudo cargar la información del perfil o las órdenes.');
+          }
+        };
+      
+        fetchUserDataAndOrders();
+      }, [token, showAlert]);
 
   const handleInputChange = (e, form) => {
     const { name, value } = e.target;
@@ -217,7 +199,7 @@ const ProfilePage = () => {
 
   const handleSaveInfo = async () => {
     try {
-      await axios.put(`${API_BASE}/perfil`, {
+      await axios.put(`${API_BASE}/user/perfil`, {
         name: editForm.name,
         correo: editForm.email,
         direccion: editForm.direccion,
@@ -257,7 +239,6 @@ const ProfilePage = () => {
       return;
     }
   
-    // AGREGAR VALIDACIÓN DE FORTALEZA:
     const requirements = [
       { regex: /.{8,}/, text: 'Mínimo 8 caracteres' },
       { regex: /[A-Z]/, text: 'Al menos una mayúscula' },
@@ -273,7 +254,7 @@ const ProfilePage = () => {
     }
 
     try {
-      await axios.put(`${API_BASE}/password`, {
+      await axios.put(`${API_BASE}/user/password`, {
         contraseñaActual: currentPassword,
         nuevaContraseña: newPassword
       }, {
@@ -494,7 +475,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* Historial de Compras */}
           {activeTab === 'history' && (
             <div className="space-y-6">
               <div className="text-center mb-8">
@@ -506,57 +486,69 @@ const ProfilePage = () => {
                 </p>
               </div>
 
-              {purchaseHistory.map((purchase) => (
-                <div
-                  key={purchase.id}
-                  className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-6 hover:border-yellow-400/50 transition-all duration-300"
-                >
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center text-black font-bold">
-                          #{purchase.id}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-white">
-                            Pedido del {purchase.fecha}
-                          </h3>
-                          <p className={`text-sm font-medium ${getStatusColor(purchase.estado)}`}>
-                            {purchase.estado}
-                          </p>
-                        </div>
-                      </div>
+              
+              {purchaseHistory && purchaseHistory.length > 0 ? (
+                <div className="space-y-6">
+                  {purchaseHistory.map((order) => (
+                    <div
+                      key={order._id}
+                      className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl p-6 hover:border-yellow-400/50 transition-all duration-300"
+                    >
+                      {/* Contenedor principal del pedido con diseño corregido */}
+                      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                        {/* Contenido de la izquierda: detalles del pedido */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center text-black font-bold">
+                              #{order._id.substring(0, 4)}
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-white">
+                                Pedido del {new Date(order.createdAt).toLocaleDateString('es-CO')}
+                              </h3>
+                              <p className={`text-sm font-medium ${getStatusColor(order.status)}`}>
+                                {order.status}
+                              </p>
+                            </div>
+                          </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-400 mb-1">Productos:</p>
-                          <div className="text-white">
-                            {purchase.productos.map((producto, idx) => (
-                              <span key={idx} className="block">• {producto}</span>
-                            ))}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-400 mb-1">Productos:</p>
+                              <div className="text-white">
+                                {order.items.map((item, idx) => (
+                                  <span key={idx} className="block">• {item.quantity}x {item.title}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-gray-400 mb-1">Dirección de entrega:</p>
+                              <p className="text-white flex items-center">
+                                <MapPin className="w-4 h-4 mr-1 text-yellow-400" />
+                                {order.direccion || 'No especificada'}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <p className="text-gray-400 mb-1">Dirección de entrega:</p>
-                          <p className="text-white flex items-center">
-                            <MapPin className="w-4 h-4 mr-1 text-yellow-400" />
-                            {purchase.direccion}
+
+                        {/* Contenido de la derecha: precio y botón */}
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-yellow-400">
+                            ${order.totalPrice.toLocaleString()}
                           </p>
+                          <button className="mt-2 border-2 border-yellow-400 text-yellow-400 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-400 hover:text-black transition-all duration-300 text-sm">
+                            Ver Detalles
+                          </button>
                         </div>
                       </div>
                     </div>
-
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-yellow-400">
-                        ${purchase.total.toLocaleString()}
-                      </p>
-                      <button className="mt-2 border-2 border-yellow-400 text-yellow-400 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-400 hover:text-black transition-all duration-300 text-sm">
-                        Ver Detalles
-                      </button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="p-6 text-center text-gray-400 bg-gray-900 rounded-xl border border-gray-700">
+                  <p>Aún no has realizado ningún pedido.</p>
+                </div>
+              )}
             </div>
           )}
 
