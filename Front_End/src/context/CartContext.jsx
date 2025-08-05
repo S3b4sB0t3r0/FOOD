@@ -13,11 +13,14 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
   const addToCart = (product) => {
-    const id = product.title; // Usamos el título como identificador
+    // AHORA USAMOS EL _id ÚNICO DEL PRODUCTO COMO IDENTIFICADOR
+    const id = product._id;
     const price = parsePrice(product.price);
 
     setCart((currentCart) => {
+      // BUSCAMOS USANDO EL _id, no el título
       const existing = currentCart.find(item => item.id === id);
+
       if (existing) {
         return currentCart.map(item =>
           item.id === id ? { ...item, quantity: item.quantity + 1 } : item
@@ -26,7 +29,7 @@ export const CartProvider = ({ children }) => {
         return [
           ...currentCart,
           {
-            id,
+            id, // El id ahora es el _id de MongoDB
             title: product.title,
             description: product.description || '',
             price,
@@ -39,10 +42,12 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (id) => {
+    // Filtramos por el _id del producto
     setCart((currentCart) => currentCart.filter(item => item.id !== id));
   };
 
   const updateQuantity = (id, delta) => {
+    // Actualizamos la cantidad por el _id del producto
     setCart((currentCart) =>
       currentCart.map(item => {
         if (item.id === id) {
