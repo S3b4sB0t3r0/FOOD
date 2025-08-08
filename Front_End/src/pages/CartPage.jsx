@@ -307,7 +307,7 @@ const CartPage = () => {
                       ) : (
                         <>
                           <CreditCard className="h-5 w-5" />
-                          <span>Proceder al pago</span>
+                          <span>Solictud de pedido</span>
                         </>
                       )}
                     </button>

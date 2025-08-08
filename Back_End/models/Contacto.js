@@ -10,6 +10,9 @@ const contactoSchema = new mongoose.Schema({
     enum: ["Pedido Especial", "Sugerencia", "Queja o Reclamo", "Felicitaciones", "Otro"],
   },
   mensaje: { type: String, required: true },
+  
+  fecha: { type: Date, default: Date.now },
+  estado: { type: String, default: 'Pendiente' } 
 });
 
 const Contacto = mongoose.model('Contacto', contactoSchema);
