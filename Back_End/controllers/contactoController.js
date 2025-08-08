@@ -1,5 +1,4 @@
 import Contacto from "../models/Contacto.js";
-
 import { enviarCorreoContacto } from '../services/emailService.js'; // ajusta la ruta según tu estructura
 
 export const postContacto = async (req, res) => {
@@ -13,12 +12,20 @@ export const postContacto = async (req, res) => {
     const newContacto = new Contacto({ name, correo, telefono, asunto, mensaje });
     await newContacto.save();
 
-    // Enviar correo de confirmación al cliente
     await enviarCorreoContacto(correo, name, asunto, mensaje);
 
-    res.status(200).json({ message: "Mensaje enviado correctamente" });
+    res.status(200).json({ message: "Mensaje enviado correctamente", contacto: newContacto });
   } catch (error) {
     res.status(500).json({ message: "Error al enviar el mensaje", error: error.message });
   }
 };
 
+
+export const getContactos = async (req, res) => {
+  try {
+    const contactos = await Contacto.find();
+    res.status(200).json(contactos);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener los contactos", error: error.message });
+  }
+};

@@ -127,25 +127,82 @@ const parsePrice = (priceStr) => {
       alert('Error al conectar con el servidor');
     }
   };
-  
+
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+     const fetchOrders = async () => {
+      try {
+       const res = await fetch('http://localhost:5000/api/orders/admin/all');
+       const result = await res.json();
+       
+       
+       if (result.orders && Array.isArray(result.orders)) {
+        setOrders(result.orders);
+       } else {
+       setOrders([]); 
+       console.error('La API no devolvió un array de pedidos en la propiedad "orders".');
+       }
+      } catch (error) {
+       console.error('Error al cargar los pedidos:', error);
+       setOrders([]); 
+      }
+     };
+     
+     fetchOrders();
+      }, []);
 
 
-  // Datos de pedidos/yapis
-  const orders = [
-    { id: 1001, customer: 'Juan Pérez', items: 'Hamburguesa Clásica x2, Coca-Cola x2', total: 45000, status: 'delivered', time: '12:30 PM', address: 'Calle 26 #15-30' },
-    { id: 1002, customer: 'María González', items: 'Pizza Margherita, Agua x1', total: 32000, status: 'preparing', time: '12:45 PM', address: 'Carrera 7 #45-12' },
-    { id: 1003, customer: 'Carlos Silva', items: 'Hamburguesa BBQ, Papas x1, Gaseosa x1', total: 38000, status: 'pending', time: '1:00 PM', address: 'Avenida 19 #8-25' },
-    { id: 1004, customer: 'Laura Torres', items: 'Pizza Pepperoni x1, Coca-Cola x2', total: 42000, status: 'cancelled', time: '1:15 PM', address: 'Calle 85 #22-45' },
-    { id: 1005, customer: 'Andrés Ruiz', items: 'Hamburguesa Doble, Papas Grandes', total: 55000, status: 'delivered', time: '1:30 PM', address: 'Carrera 15 #67-89' }
-  ];
-
-  // Datos de contactos
-  const contacts = [
-    { id: 1, name: 'Sofia Ramírez', email: 'sofia@gmail.com', phone: '+57 310 123 4567', subject: 'Pedido Especial', message: 'Quisiera hacer un pedido para 20 personas...', date: '2024-07-19 10:30', status: 'pending' },
-    { id: 2, name: 'Miguel Castro', email: 'miguel@gmail.com', phone: '+57 311 234 5678', subject: 'Sugerencia', message: 'Me encanta el servicio, pero sugiero...', date: '2024-07-19 09:15', status: 'resolved' },
-    { id: 3, name: 'Andrea Morales', email: 'andrea@gmail.com', phone: '+57 312 345 6789', subject: 'Queja', message: 'El pedido llegó frío y tarde...', date: '2024-07-18 20:45', status: 'pending' },
-    { id: 4, name: 'Roberto Jiménez', email: 'roberto@gmail.com', phone: '+57 313 456 7890', subject: 'Felicitaciones', message: 'Excelente servicio y comida deliciosa', date: '2024-07-18 18:30', status: 'resolved' }
-  ];
+      const [contacts, setContacts] = useState([]);
+      const [isLoading, setIsLoading] = useState(true);
+      const [error, setError] = useState(null);
+    
+      useEffect(() => {
+        const fetchContacts = async () => {
+          try {
+            const response = await fetch('http://localhost:5000/api/contacto/dashboard');
+            
+            if (!response.ok) {
+              throw new Error('Error al obtener los datos. Código de estado: ' + response.status);
+            }
+            
+            const data = await response.json();
+            
+            // Asumiendo que el backend siempre devuelve un array directamente
+            if (Array.isArray(data)) {
+              setContacts(data);
+            } else {
+              setContacts([]);
+              console.error('La API no devolvió un array de contactos.');
+            }
+          } catch (err) {
+            console.error('Error al cargar los contactos:', err);
+            setError(err.message);
+            setContacts([]);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        
+        fetchContacts();
+      }, []);
+      
+      const formatFecha = (fecha) => {
+        const date = new Date(fecha);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+      };
+    
+      if (isLoading) {
+        return <div className="text-center text-white py-10">Cargando contactos...</div>;
+      }
+    
+      if (error) {
+        return <div className="text-center text-red-500 py-10">Error: {error}</div>;
+      }
+      
+      if (contacts.length === 0) {
+        return <div className="text-center text-gray-400 py-10">No hay mensajes de contacto.</div>;
+      }
 
   const menuItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
@@ -301,74 +358,64 @@ const parsePrice = (priceStr) => {
 
   const OrdersContent = () => (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Gestión de Pedidos</h3>
-          <div className="flex space-x-3">
-            <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
-              <option>Todos los estados</option>
-              <option>Pendiente</option>
-              <option>Preparando</option>
-              <option>Entregado</option>
-              <option>Cancelado</option>
-            </select>
-            <button className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
-              Nuevo Pedido
-            </button>
-          </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 font-medium text-gray-300">ID</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Cliente</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Productos</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Total</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Hora</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map(order => (
-                <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                  <td className="py-3 px-4 font-medium text-white">#{order.id}</td>
-                  <td className="py-3 px-4 text-gray-300">{order.customer}</td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">{order.items}</td>
-                  <td className="py-3 px-4 font-medium text-yellow-400">${order.total.toLocaleString()}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                      order.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {order.status === 'delivered' ? 'Entregado' :
-                       order.status === 'preparing' ? 'Preparando' :
-                       order.status === 'pending' ? 'Pendiente' : 'Cancelado'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">{order.time}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex space-x-2">
-                      <button className="text-yellow-400 hover:text-yellow-300">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="text-blue-400 hover:text-blue-300">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-white">Gestión de Pedidos</h3>
+        <div className="flex space-x-3">
+          <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
+            <option>Todos los estados</option>
+            <option>Pendiente</option>
+            <option>Preparando</option>
+            <option>Entregado</option>
+            <option>Cancelado</option>
+          </select>
         </div>
       </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-700">
+              <th className="text-left py-3 px-4 font-medium text-gray-300">ID</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Cliente</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Productos</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Total</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Hora</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(order => (
+              <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                <td className="py-3 px-4 font-medium text-white">#{order.id}</td>
+                <td className="py-3 px-4 text-gray-300">{order.customer}</td>
+                <td className="py-3 px-4 text-gray-300 text-sm">{order.items}</td>
+                <td className="py-3 px-4 font-medium text-yellow-400">${order.total.toLocaleString()}</td>
+                <td className="py-3 px-4">
+                <td className="py-3 px-4 text-gray-300">
+                  {order.status}
+                </td>
+                </td>
+                <td className="py-3 px-4 text-gray-300 text-sm">{order.time}</td>
+                <td className="py-3 px-4">
+                  <div className="flex space-x-2">
+                    <button className="text-yellow-400 hover:text-yellow-300">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button className="text-blue-400 hover:text-blue-300">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  );
+  </div>
+);
 
   const InventoryContent = () => (
     <div className="space-y-6">
@@ -520,62 +567,63 @@ const parsePrice = (priceStr) => {
 
   const ContactsContent = () => (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Mensajes de Contacto</h3>
-          <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
-            <option>Todos</option>
-            <option>Pendientes</option>
-            <option>Resueltos</option>
-          </select>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Nombre</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Email</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Teléfono</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Asunto</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Fecha</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
+    <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-white">Mensajes de Contacto</h3>
+        <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
+          <option>Todos</option>
+          <option>Pendientes</option>
+          <option>Resueltos</option>
+        </select>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-700">
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Nombre</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Email</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Teléfono</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Asunto</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Fecha</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contacts.map(contact => (
+              <tr key={contact._id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                <td className="py-3 px-4 font-medium text-white">{contact.name}</td>
+                <td className="py-3 px-4 text-gray-300">{contact.correo}</td>
+                <td className="py-3 px-4 text-gray-300">{contact.telefono}</td>
+                <td className="py-3 px-4 text-gray-300">{contact.asunto}</td>
+                <td className="py-3 px-4 text-gray-300 text-sm">{formatFecha(contact.fecha)}</td>
+                <td className="py-3 px-4">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    contact.estado === 'Resuelto' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {contact.estado}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex space-x-2">
+                    <button className="text-yellow-400 hover:text-yellow-300">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button className="text-green-400 hover:text-green-300">
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {contacts.map(contact => (
-                <tr key={contact.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                  <td className="py-3 px-4 font-medium text-white">{contact.name}</td>
-                  <td className="py-3 px-4 text-gray-300">{contact.email}</td>
-                  <td className="py-3 px-4 text-gray-300">{contact.phone}</td>
-                  <td className="py-3 px-4 text-gray-300">{contact.subject}</td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">{contact.date}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-contact.status === 'resolved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-}`}>
-  {contact.status === 'resolved' ? 'Resuelto' : 'Pendiente'}
-</span>
-</td>
-<td className="py-3 px-4">
-<div className="flex space-x-2">
-  <button className="text-yellow-400 hover:text-yellow-300">
-    <Eye className="w-4 h-4" />
-  </button>
-  <button className="text-green-400 hover:text-green-300">
-    <CheckCircle className="w-4 h-4" />
-  </button>
-</div>
-</td>
-</tr>
-))}
-</tbody>
-</table>
-</div>
-</div>
-</div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 );
+
 
 const ReportsContent = () => (
 <div className="space-y-6">

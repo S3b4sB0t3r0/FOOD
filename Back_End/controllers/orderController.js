@@ -85,3 +85,29 @@ export const getOrderUser = async (req, res) => {
     res.status(500).json({ message: 'Error interno del servidor.' });
   }
 };
+
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 }).lean();
+
+    const formattedOrders = orders.map(order => ({
+      id: order._id,
+      customer: order.customerEmail,
+      items: order.items.map(item => `${item.title} x${item.quantity}`).join(', '),
+      total: order.totalPrice,
+      status: order.status,
+      time: new Date(order.createdAt).toLocaleString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+    }));
+
+    res.status(200).json({ orders: formattedOrders });
+  } catch (error) {
+    console.error('Error al obtener todas las órdenes:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
