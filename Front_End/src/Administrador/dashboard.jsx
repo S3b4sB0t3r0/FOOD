@@ -31,35 +31,94 @@ import ProductUpdateModal from '../components/ProductUpdateModal';
 const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [notifications, setNotifications] = useState(5);
+  const [ventasHoy, setVentasHoy] = useState(0);
+  const [pedidosHoy, setPedidosHoy] = useState(0);
+  const [usuariosActivos, setUsuariosActivos] = useState(0);
+  const [salesData, setSalesData] = useState([]);
+  const [productData, setProductData] = useState([]);
+  const [ingresosMes, setIngresosMes] = useState(0);
 
   // Datos para gráficas
-  const salesData = [
-    { name: 'Ene', ventas: 45000, ordenes: 320, clientes: 180 },
-    { name: 'Feb', ventas: 52000, ordenes: 380, clientes: 210 },
-    { name: 'Mar', ventas: 48000, ordenes: 350, clientes: 195 },
-    { name: 'Apr', ventas: 58000, ordenes: 420, clientes: 235 },
-    { name: 'May', ventas: 61000, ordenes: 450, clientes: 260 },
-    { name: 'Jun', ventas: 65000, ordenes: 480, clientes: 280 },
-    { name: 'Jul', ventas: 72000, ordenes: 520, clientes: 310 }
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Tarjetas
+        const [ventasRes, pedidosRes, usuariosRes, ingresosRes ] = await Promise.all([
+          fetch('http://localhost:5000/api/stats/ventas-hoy').then(r => r.json()),
+          fetch('http://localhost:5000/api/stats/pedidos-hoy').then(r => r.json()),
+          fetch('http://localhost:5000/api/stats/usuarios-activos').then(r => r.json()),
+          fetch('http://localhost:5000/api/stats/ingresos-mes').then(r => r.json())
+        ]);
+  
+        setVentasHoy(ventasRes.total || 0);
+        setPedidosHoy(pedidosRes.cantidad || 0);
+        setUsuariosActivos(usuariosRes.activos || 0);
+        setIngresosMes(ingresosRes.total || 0);
 
-  const productData = [
-    { name: 'Hamburguesas', value: 35, color: '#f59e0b' },
-    { name: 'Pizza', value: 25, color: '#111827' },
-    { name: 'Bebidas', value: 20, color: '#374151' },
-    { name: 'Postres', value: 12, color: '#fbbf24' },
-    { name: 'Otros', value: 8, color: '#6b7280' }
-  ];
+        // Tendencia de ventas (gráfico)
+        const tendenciaRes = await fetch('http://localhost:5000/api/stats/tendencia-ventas').then(r => r.json());
+        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        setSalesData(tendenciaRes.map(item => ({
+          name: meses[item.mes - 1],
+          ventas: item.total
+        })));
+  
+        // Productos más vendidos
+        const productosRes = await fetch('http://localhost:5000/api/stats/productos-mas-vendidos').then(r => r.json());
+        setProductData(productosRes.map((p, index) => ({
+          name: p._id,
+          value: p.cantidad,
+          color: ['#f59e0b', '#111827', '#374151', '#fbbf24', '#6b7280'][index % 5]
+        })));
+      } catch (err) {
+        console.error('Error cargando estadísticas:', err);
+      }
+    };
+  
+    fetchStats();
+  }, []);
 
-  const revenueData = [
-    { name: 'L', ingresos: 8500, gastos: 6200 },
-    { name: 'M', ingresos: 9200, gastos: 6800 },
-    { name: 'Mi', ingresos: 8800, gastos: 6500 },
-    { name: 'J', ingresos: 12500, gastos: 8200 },
-    { name: 'V', ingresos: 15800, gastos: 9500 },
-    { name: 'S', ingresos: 18200, gastos: 10800 },
-    { name: 'D', ingresos: 16500, gastos: 9800 }
-  ];
+
+const [reportStats, setReportStats] = useState(null);
+
+useEffect(() => {
+  if (activeSection === 'reports') {
+    const fetchReportStats = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/reportes/estadisticas');
+        const data = await res.json();
+        setReportStats(data);
+      } catch (err) {
+        console.error('Error cargando reportes:', err);
+      }
+    };
+    fetchReportStats();
+  }
+}, [activeSection]);
+
+// Botón para descargar PDF
+const handleDownloadPDF = () => {
+  fetch('http://localhost:5000/api/reportes/pdf', {
+    method: 'GET',
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error('Error descargando PDF');
+      return response.blob();
+    })
+    .then((blob) => {
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Reportes.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    })
+    .catch((error) => {
+      console.error(error);
+      alert('Error al generar el PDF');
+    });
+};
 
  // Datos de inventario
 const [productos, setProductos] = useState([]);
@@ -221,7 +280,7 @@ const parsePrice = (priceStr) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Ventas Hoy</p>
-              <p className="text-2xl font-bold text-white">$342,500</p>
+              <p className="text-2xl font-bold text-white">${ventasHoy.toLocaleString()}</p>
               <p className="text-yellow-400 text-sm font-medium">+12.5% vs ayer</p>
             </div>
             <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
@@ -229,12 +288,12 @@ const parsePrice = (priceStr) => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Pedidos</p>
-              <p className="text-2xl font-bold text-white">87</p>
+              <p className="text-2xl font-bold text-white">{pedidosHoy}</p>
               <p className="text-yellow-400 text-sm font-medium">+8.2% vs ayer</p>
             </div>
             <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
@@ -244,23 +303,24 @@ const parsePrice = (priceStr) => {
         </div>
 
         <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Ticket Promedio</p>
-              <p className="text-2xl font-bold text-white">$39,425</p>
-              <p className="text-red-400 text-sm font-medium">-2.1% vs ayer</p>
-            </div>
-            <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
-              <TrendingUp className="w-6 h-6 text-black" />
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-gray-400 text-sm">Ingresos del Mes</p>
+            <p className="text-2xl font-bold text-white">${ingresosMes.toLocaleString()}</p>
+            <p className="text-yellow-400 text-sm font-medium">Mes actual</p>
+          </div>
+          <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
+            <DollarSign className="w-6 h-6 text-black" />
           </div>
         </div>
+      </div>
+
 
         <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Usuarios Activos</p>
-              <p className="text-2xl font-bold text-white">1,248</p>
+              <p className="text-2xl font-bold text-white">{usuariosActivos}</p>
               <p className="text-yellow-400 text-sm font-medium">+15.3% vs mes anterior</p>
             </div>
             <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
@@ -279,19 +339,19 @@ const parsePrice = (priceStr) => {
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
               <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#111827', 
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#111827',
                   border: '1px solid #374151',
                   borderRadius: '8px',
                   color: '#fff'
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="ventas" 
-                stroke="#f59e0b" 
-                fill="#f59e0b" 
+              <Area
+                type="monotone"
+                dataKey="ventas"
+                stroke="#f59e0b"
+                fill="#f59e0b"
                 fillOpacity={0.2}
                 strokeWidth={3}
               />
@@ -322,36 +382,17 @@ const parsePrice = (priceStr) => {
           <div className="grid grid-cols-2 gap-2 mt-4">
             {productData.map((item, index) => (
               <div key={index} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
+                <div
+                  className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: item.color }}
                 ></div>
-                <span className="text-sm text-gray-400">{item.name}: {item.value}%</span>
+                <span className="text-sm text-gray-400">
+                  {item.name}: {item.value}
+                </span>
               </div>
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-        <h3 className="text-lg font-semibold text-white mb-6">Ingresos vs Gastos (Semana)</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={revenueData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-            <YAxis stroke="#9ca3af" fontSize={12} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#111827', 
-                border: '1px solid #374151',
-                borderRadius: '8px',
-                color: '#fff'
-              }}
-            />
-            <Line type="monotone" dataKey="ingresos" stroke="#f59e0b" strokeWidth={3} name="Ingresos" />
-            <Line type="monotone" dataKey="gastos" stroke="#6b7280" strokeWidth={3} name="Gastos" />
-          </LineChart>
-        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -626,87 +667,24 @@ const parsePrice = (priceStr) => {
 
 
 const ReportsContent = () => (
-<div className="space-y-6">
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-<div className="flex items-center justify-between mb-4">
-<h4 className="text-lg font-semibold text-white">Reporte Diario</h4>
-<FileText className="w-6 h-6 text-yellow-400" />
-</div>
-<p className="text-gray-400 text-sm mb-4">Resumen de ventas y operaciones del día</p>
-<button className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
-Generar Reporte
-</button>
-</div>
-
-<div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-<div className="flex items-center justify-between mb-4">
-<h4 className="text-lg font-semibold text-white">Reporte Semanal</h4>
-<BarChart3 className="w-6 h-6 text-yellow-400" />
-</div>
-<p className="text-gray-400 text-sm mb-4">Análisis semanal de rendimiento</p>
-<button className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
-Generar Reporte
-</button>
-</div>
-
-<div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-<div className="flex items-center justify-between mb-4">
-<h4 className="text-lg font-semibold text-white">Reporte Mensual</h4>
-<TrendingUp className="w-6 h-6 text-yellow-400" />
-</div>
-<p className="text-gray-400 text-sm mb-4">Estadísticas mensuales completas</p>
-<button className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
-Generar Reporte
-</button>
-</div>
-</div>
-
-<div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-<h3 className="text-lg font-semibold text-white mb-6">Métricas de Rendimiento</h3>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div className="space-y-4">
-<div className="flex justify-between items-center">
-<span className="text-gray-400">Satisfacción del Cliente</span>
-<span className="text-yellow-400 font-semibold">4.7/5.0</span>
-</div>
-<div className="w-full bg-gray-700 rounded-full h-2">
-<div className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full" style={{width: '94%'}}></div>
-</div>
-</div>
-
-<div className="space-y-4">
-<div className="flex justify-between items-center">
-<span className="text-gray-400">Tiempo Promedio de Entrega</span>
-<span className="text-yellow-400 font-semibold">28 min</span>
-</div>
-<div className="w-full bg-gray-700 rounded-full h-2">
-<div className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full" style={{width: '85%'}}></div>
-</div>
-</div>
-
-<div className="space-y-4">
-<div className="flex justify-between items-center">
-<span className="text-gray-400">Eficiencia Operativa</span>
-<span className="text-yellow-400 font-semibold">91%</span>
-</div>
-<div className="w-full bg-gray-700 rounded-full h-2">
-<div className="bg-gradient-to-r from-blue-400 to-blue-500 h-2 rounded-full" style={{width: '91%'}}></div>
-</div>
-</div>
-
-<div className="space-y-4">
-<div className="flex justify-between items-center">
-<span className="text-gray-400">Rotación de Inventario</span>
-<span className="text-yellow-400 font-semibold">78%</span>
-</div>
-<div className="w-full bg-gray-700 rounded-full h-2">
-<div className="bg-gradient-to-r from-purple-400 to-purple-500 h-2 rounded-full" style={{width: '78%'}}></div>
-</div>
-</div>
-</div>
-</div>
-</div>
+    <h3 className="text-lg font-semibold text-white mb-6">Reporte General</h3>
+    {reportStats ? (
+      <div className="space-y-4 text-white">
+        <p>Total Ventas: ${reportStats.totalVentas.toLocaleString()}</p>
+        <p>Total Pedidos: {reportStats.totalPedidos}</p>
+        <p>Total Usuarios: {reportStats.totalUsuarios}</p>
+        <button
+          onClick={handleDownloadPDF}
+          className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-lg font-semibold"
+        >
+          Descargar Reporte PDF
+        </button>
+      </div>
+    ) : (
+      <p className="text-gray-400">Cargando datos...</p>
+    )}
+  </div>
 );
 
 const renderContent = () => {

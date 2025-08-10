@@ -29,7 +29,7 @@ const MenuPage = () => {
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/menu');
+        const res = await fetch('http://localhost:5000/api/menu-cliente');
         const data = await res.json();
 
         // Agrupar productos por categoría
