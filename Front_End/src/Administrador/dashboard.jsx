@@ -23,7 +23,8 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import ProductUpdateModal from '../components/ProductUpdateModal';
@@ -461,10 +462,19 @@ const parsePrice = (priceStr) => {
   const InventoryContent = () => (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-        <div className="flex items-center justify-between mb-6">
+       <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-white">Inventario General</h3>
+          <button
+            onClick={() => {
+              setSelectedProduct(null); // modo creación
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-xl font-medium shadow hover:shadow-lg transition"
+          >
+            <Plus className="w-4 h-4" />
+            Agregar Producto
+          </button>
         </div>
-  
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -774,48 +784,45 @@ className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-a
 </ul>
 </nav>
 </aside>
-
-{activeSection === 'inventory' && (
-    <>
-      <ProductUpdateModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        product={selectedProduct}
-        onUpdate={(updated) => {
-          setProductos((prev) => {
-            const index = prev.findIndex((p) => p._id === updated._id);
-            if (index !== -1) {
-              const copia = [...prev];
-              copia[index] = updated;
-              return copia;
-            } else {
-              return [...prev, updated];
-            }
-          });
-        }}
-      />
-    </>
-  )}
-  
-
 {/* Main Content */}
 <main className="flex-1 p-6">
-<div className="mb-6">
-<h2 className="text-3xl font-bold text-white mb-2">
-{menuItems.find(item => item.id === activeSection)?.label}
-</h2>
-<p className="text-gray-400">
-{activeSection === 'dashboard' && 'Resumen general del sistema'}
-{activeSection === 'orders' && 'Gestiona todos los pedidos del restaurante'}
-{activeSection === 'inventory' && 'Control de inventario y stock'}
-{activeSection === 'users' && 'Administra usuarios del sistema'}
-{activeSection === 'contacts' && 'Mensajes y consultas de clientes'}
-{activeSection === 'reports' && 'Reportes y análisis de datos'}
-</p>
-</div>
+  <div className="mb-6">
+    <h2 className="text-3xl font-bold text-white mb-2">
+      {menuItems.find(item => item.id === activeSection)?.label}
+    </h2>
+    <p className="text-gray-400">
+      {activeSection === 'dashboard' && 'Resumen general del sistema'}
+      {activeSection === 'orders' && 'Gestiona todos los pedidos del restaurante'}
+      {activeSection === 'inventory' && 'Control de inventario y stock'}
+      {activeSection === 'users' && 'Administra usuarios del sistema'}
+      {activeSection === 'contacts' && 'Mensajes y consultas de clientes'}
+      {activeSection === 'reports' && 'Reportes y análisis de datos'}
+    </p>
+  </div>
 
-{renderContent()}
+  {renderContent()}
 </main>
+
+{/* Modal de edición/agregado de productos */}
+<ProductUpdateModal
+  isOpen={isModalOpen}
+  onClose={() => setIsModalOpen(false)}
+  product={selectedProduct}
+  onUpdate={(updated) => {
+    setProductos((prev) => {
+      const index = prev.findIndex((p) => p._id === updated._id);
+      if (index !== -1) {
+        const copia = [...prev];
+        copia[index] = updated;
+        return copia;
+      } else {
+        return [...prev, updated];
+      }
+    });
+    setSelectedProduct(null);
+  }}
+/>
+
 </div>
 </div>
 );

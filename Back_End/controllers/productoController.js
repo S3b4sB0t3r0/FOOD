@@ -72,3 +72,31 @@ export const updateProducto = async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar el producto' });
   }
 };
+
+
+// Crear un nuevo producto
+export const createProducto = async (req, res) => {
+  try {
+    const data = req.body;
+
+    // Validación básica (puedes mejorarla si gustas)
+    if (!data.title || !data.description || !data.price || !data.category || !data.unidad) {
+      return res.status(400).json({ message: 'Faltan campos obligatorios' });
+    }
+
+    // Si no se proporciona el campo `estado`, lo activamos por defecto
+    if (data.stock === 0) {
+      data.estado = false;
+    } else {
+      data.estado = true;
+    }
+
+    const nuevoProducto = new Producto(data);
+    await nuevoProducto.save();
+
+    res.status(201).json(nuevoProducto);
+  } catch (error) {
+    console.error('Error al crear el producto:', error);
+    res.status(500).json({ message: 'Error al crear el producto', error });
+  }
+};
