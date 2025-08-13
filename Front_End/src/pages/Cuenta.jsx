@@ -142,51 +142,51 @@ const ProfilePage = () => {
   };
 
   useEffect(() => {
-        const fetchUserDataAndOrders = async () => {
-          if (!token) return;
-      
-          try {
-            // Paso 1: Cargar información del usuario
-            const userRes = await axios.get(`${API_BASE}/user/perfil`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const userData = userRes.data.user;
-      
-            const formattedDate = new Date(userData.createdAt).toLocaleDateString('es-CO', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            });
-      
-            setUserInfo({
-              name: userData.name,
-              email: userData.correo,
-              telefono: userData.telefono || '',
-              direccion: userData.direccion || '',
-              fechaRegistro: formattedDate
-            });
-      
-            setEditForm({
-              name: userData.name,
-              email: userData.correo,
-              telefono: userData.telefono || '',
-              direccion: userData.direccion || ''
-            });
-      
-            // Paso 2: Cargar historial de pedidos
-            // Esta es la llamada correcta, enviando el correo en la URL
-            const ordersRes = await axios.get(`${API_BASE}/orders/getorderuser?email=${userData.correo}`);
-            
-            setPurchaseHistory(ordersRes.data.orders);
-      
-          } catch (err) {
-            console.error('Error al cargar el perfil o las órdenes:', err);
-            showAlert('error', 'No se pudo cargar la información del perfil o las órdenes.');
-          }
-        };
-      
-        fetchUserDataAndOrders();
-      }, [token, showAlert]);
+     const fetchUserDataAndOrders = async () => {
+     if (!token) return;
+    
+     try {
+     //Cargar información del usuario
+    const userRes = await axios.get(`${API_BASE}/user/perfil`, {
+    headers: { Authorization: `Bearer ${token}` }
+     });
+    const userData = userRes.data.user;
+    
+     const formattedDate = new Date(userData.createdAt).toLocaleDateString('es-CO', {
+     year: 'numeric',
+     month: 'long',
+     day: 'numeric'
+     });
+    
+     setUserInfo({
+     name: userData.name,
+     email: userData.correo,
+     telefono: userData.telefono || '',
+     direccion: userData.direccion || '',
+     fechaRegistro: formattedDate
+    });
+     
+          if (!isEditingInfo && !isEditingPassword) {
+            setEditForm({
+              name: userData.name,
+              email: userData.correo,
+              telefono: userData.telefono || '',
+              direccion: userData.direccion || ''
+            });
+          }
+     const ordersRes = await axios.get(`${API_BASE}/orders/getorderuser?email=${userData.correo}`);
+     
+     setPurchaseHistory(ordersRes.data.orders);
+  
+     } catch (err) {
+     console.error('Error al cargar el perfil o las órdenes:', err);
+     showAlert('error', 'No se pudo cargar la información del perfil o las órdenes.');
+     }
+     };
+     
+     fetchUserDataAndOrders();
+    }, [token, showAlert, isEditingInfo, isEditingPassword]);
+
 
   const handleInputChange = (e, form) => {
     const { name, value } = e.target;

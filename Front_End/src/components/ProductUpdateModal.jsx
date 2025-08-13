@@ -19,27 +19,46 @@ const ProductUpdateModal = ({ isOpen, onClose, product, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const categories = ['Hamburguesas', 'Pizza', 'Bebidas', 'Postres', 'Entradas', 'Combos', 'Otros'];
-  const unidades = ['Unidad', 'Porción', 'Litro', 'ml', 'Gramo', 'Kilogramo', 'Paquete'];
+  const categories = ['Entradas', 'Platos Principales', 'Bebidas', 'Postres'];
+  const unidades = ['Unidades', 'ml'];
 
   useEffect(() => {
-    if (product && isOpen) {
-      setFormData({
-        title: product.title || '',
-        description: product.description || '',
-        price: product.price || '',
-        image: product.image || '',
-        category: product.category || '',
-        popular: product.popular || false,
-        new: product.new || false,
-        stock: product.stock || 0,
-        minimo: product.minimo || 0,
-        unidad: product.unidad || '',
-        estado: product.estado !== undefined ? product.estado : true
-      });
+    if (isOpen) {
+      if (product) {
+        setFormData({
+          title: product.title || '',
+          description: product.description || '',
+          price: product.price || '',
+          image: product.image || '',
+          category: product.category || '',
+          popular: product.popular || false,
+          new: product.new || false,
+          stock: product.stock || 0,
+          minimo: product.minimo || 0,
+          unidad: product.unidad || '',
+          estado: product.estado !== undefined ? product.estado : true
+        });
+      } else {
+        // Formulario limpio si es nuevo
+        setFormData({
+          title: '',
+          description: '',
+          price: '',
+          image: '',
+          category: '',
+          popular: false,
+          new: false,
+          stock: 0,
+          minimo: 0,
+          unidad: '',
+          estado: true
+        });
+      }
+  
       setErrors({});
     }
   }, [product, isOpen]);
+  
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -272,7 +291,13 @@ const ProductUpdateModal = ({ isOpen, onClose, product, onUpdate }) => {
             }`}
           >
             <Save className="w-5 h-5" />
-            <span>{loading ? 'Guardando...' : 'Guardar Cambios'}</span>
+            <span>
+              {loading
+                ? 'Guardando...'
+                : product
+                ? 'Guardar Cambios'
+                : 'Crear Producto'}
+            </span>
           </button>
         </div>
       </div>

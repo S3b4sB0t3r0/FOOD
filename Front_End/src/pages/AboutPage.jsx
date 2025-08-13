@@ -4,6 +4,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useLayoutEffect } from 'react';
 import { FaUtensils, FaTruck, FaUsers, FaStar, FaHeart, FaAward, FaGlobe, FaRocket, FaLeaf, FaHandshake, FaChevronDown, FaPlay } from 'react-icons/fa';
+import equipoCocina from '../img/A.png';
+
 
 const AboutPage = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -202,7 +204,7 @@ const AboutPage = () => {
             <div className="relative">
               <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-3xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-500">
                 <img 
-                  src="/api/placeholder/500/400" 
+                  src={equipoCocina} 
                   alt="Nuestro equipo" 
                   className="w-full h-80 object-cover rounded-2xl shadow-2xl"
                 />
