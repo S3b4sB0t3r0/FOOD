@@ -21,9 +21,6 @@ const iconMap = {
 
 const MenuPage = () => {
   const [menuData, setMenuData] = useState({});
-  const [activeCategory, setActiveCategory] = useState('Entradas');
-
-  // ✅ Usar el método addToCart del contexto
   const { addToCart } = useCart();
 
   useEffect(() => {

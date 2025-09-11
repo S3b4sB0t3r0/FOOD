@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useLayoutEffect } from 'react';
-import { FaUtensils, FaTruck, FaUsers, FaStar, FaHeart, FaAward, FaGlobe, FaRocket, FaLeaf, FaHandshake, FaChevronDown, FaPlay } from 'react-icons/fa';
+import { FaUtensils, FaTruck, FaUsers, FaStar, FaHeart, FaAward, FaGlobe, FaRocket, FaLeaf, FaHandshake, FaChevronDown} from 'react-icons/fa';
 import equipoCocina from '../img/A.png';
 
 

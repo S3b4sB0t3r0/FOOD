@@ -119,7 +119,7 @@ const PasswordStrength = ({ password }) => {
   );
 };
 
-const Login_Register = () => {
+const LoginRegister  = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
@@ -502,4 +502,4 @@ const Login_Register = () => {
   );
 };
 
-export default Login_Register;
+export default LoginRegister;

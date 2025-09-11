@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, MessageCircle, Send, Star, CheckCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, MessageCircle, Send,CheckCircle } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 

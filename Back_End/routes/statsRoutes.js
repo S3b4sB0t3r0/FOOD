@@ -5,7 +5,9 @@ import {
   getPedidosHoy,
   getUsuariosActivos,
   getProductosMasVendidos,
-  getIngresosMes
+  getIngresosMes,
+  getPedidosPorDia,
+  getHorasPico  
 } from '../controllers/statsController.js';
 
 const router = express.Router();
@@ -16,5 +18,7 @@ router.get('/pedidos-hoy', getPedidosHoy);
 router.get('/usuarios-activos', getUsuariosActivos);
 router.get('/productos-mas-vendidos', getProductosMasVendidos);
 router.get('/ingresos-mes', getIngresosMes);
+router.get('/pedidos-por-dia', getPedidosPorDia);
+router.get('/horas-pico', getHorasPico);
 
 export default router;
