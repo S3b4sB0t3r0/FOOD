@@ -2,7 +2,7 @@ import React from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Link } from "react-router-dom";
-import { Clock, Handshake, Star, Smile, Lightbulb, Heart, ThumbsUp, ChefHat, Award, Shield, Users, Zap } from 'lucide-react';
+import { Clock, Star,Lightbulb, Heart,ChefHat, Award, Shield, Users} from 'lucide-react';
 
 const services = [
   {

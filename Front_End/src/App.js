@@ -16,7 +16,7 @@ import CartPage from './pages/CartPage';
 import TeamPage from './pages/TeamPage';
 import ServicesPage from './pages/ServicesPage';
 import ContactPage from './pages/Contacto';
-import Login_Register from './pages/L-R';
+import LoginRegister  from './pages/LoginRegister';
 import PasswordReset from './pages/RestablecerContraseña';
 import PasswordChange from './pages/CambioContraseña';
 import ProfilePage from './pages/Cuenta';
@@ -34,7 +34,7 @@ function App() {
             <Route path="/equipo" element={<TeamPage />} />
             <Route path="/servicios" element={<ServicesPage />} />
             <Route path="/contacto" element={<ContactPage />} />
-            <Route path="/LR" element={<Login_Register />} />
+            <Route path="/LR" element={<LoginRegister />} />
             <Route path="/restablecer" element={<PasswordReset />} />
             <Route path="/recuperar/:token" element={<PasswordChange />} />
 

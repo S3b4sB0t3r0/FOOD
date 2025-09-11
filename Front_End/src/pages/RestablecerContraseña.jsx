@@ -40,12 +40,7 @@ const PasswordReset = () => {
   };
   
 
-  const handleBackToLogin = () => {
-    // Aquí iría la navegación de vuelta al login
-    setIsSuccess(false);
-    setEmail('');
-    setError('');
-  };
+
 
   if (isSuccess) {
     return (

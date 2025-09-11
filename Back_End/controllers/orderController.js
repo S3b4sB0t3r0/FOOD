@@ -71,7 +71,7 @@ export const getOrderUser = async (req, res) => {
       return res.status(400).json({ message: 'El correo electrónico es requerido.' });
     }
 
-    console.log(`Buscando órdenes para el correo: ${email}`);
+   console.log(`Buscando órdenes para el correo: ${email}`);
 
     const orders = await Order.find({ customerEmail: email }).sort({ createdAt: -1 });
 

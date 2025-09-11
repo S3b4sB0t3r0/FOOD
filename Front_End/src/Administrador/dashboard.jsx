@@ -1,32 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  Users, 
-  Package, 
-  TrendingUp, 
-  DollarSign, 
-  ShoppingCart,
-  AlertCircle,
-  Star,
-  Clock,
-  Search,
-  Bell,
-  Settings,
-  User,
-  Home,
-  FileText,
-  MessageCircle,
-  Phone,
-  Mail,
-  Eye,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Filter,
-  Plus
-} from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { Users, Package,DollarSign, ShoppingCart,Search, Bell,Settings,User,Home,FileText,MessageCircle,Eye,Edit,Trash2,CheckCircle,Plus} from 'lucide-react';
+import {XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,PieChart, Pie, Cell, AreaChart, Area,  BarChart, Bar} from 'recharts';
+import { motion } from "framer-motion";
 import ProductUpdateModal from '../components/ProductUpdateModal';
 
 const Dashboard = () => {
@@ -38,6 +13,8 @@ const Dashboard = () => {
   const [salesData, setSalesData] = useState([]);
   const [productData, setProductData] = useState([]);
   const [ingresosMes, setIngresosMes] = useState(0);
+  const [pedidosPorDia, setPedidosPorDia] = useState([]);
+  const [horasPico, setHorasPico] = useState([]);
 
   // Datos para gráficas
   useEffect(() => {
@@ -71,9 +48,18 @@ const Dashboard = () => {
           value: p.cantidad,
           color: ['#f59e0b', '#111827', '#374151', '#fbbf24', '#6b7280'][index % 5]
         })));
-      } catch (err) {
-        console.error('Error cargando estadísticas:', err);
-      }
+          } catch (err) {
+            console.error('Error cargando estadísticas:', err);
+          }
+
+      // Pedidos por día
+        const pedidosDiaRes = await fetch("http://localhost:5000/api/stats/pedidos-por-dia").then(r => r.json());
+        setPedidosPorDia(pedidosDiaRes);
+
+        // Horas pico
+        const horasRes = await fetch("http://localhost:5000/api/stats/horas-pico").then(r => r.json());
+        setHorasPico(horasRes);
+
     };
   
     fetchStats();
@@ -277,7 +263,11 @@ const parsePrice = (priceStr) => {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
+        {/* Ventas Hoy */}
+        <motion.div 
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Ventas Hoy</p>
@@ -288,9 +278,13 @@ const parsePrice = (priceStr) => {
               <DollarSign className="w-6 h-6 text-black" />
             </div>
           </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
+        </motion.div>
+  
+        {/* Pedidos Hoy */}
+        <motion.div 
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Pedidos</p>
@@ -301,23 +295,30 @@ const parsePrice = (priceStr) => {
               <ShoppingCart className="w-6 h-6 text-black" />
             </div>
           </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-400 text-sm">Ingresos del Mes</p>
-            <p className="text-2xl font-bold text-white">${ingresosMes.toLocaleString()}</p>
-            <p className="text-yellow-400 text-sm font-medium">Mes actual</p>
+        </motion.div>
+  
+        {/* Ingresos del Mes */}
+        <motion.div 
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm">Ingresos del Mes</p>
+              <p className="text-2xl font-bold text-white">${ingresosMes.toLocaleString()}</p>
+              <p className="text-yellow-400 text-sm font-medium">Mes actual</p>
+            </div>
+            <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
+              <DollarSign className="w-6 h-6 text-black" />
+            </div>
           </div>
-          <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
-            <DollarSign className="w-6 h-6 text-black" />
-          </div>
-        </div>
-      </div>
-
-
-        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
+        </motion.div>
+  
+        {/* Usuarios Activos */}
+        <motion.div 
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Usuarios Activos</p>
@@ -328,13 +329,19 @@ const parsePrice = (priceStr) => {
               <Users className="w-6 h-6 text-black" />
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-
-      {/* Main Charts Row */}
+  
+      {/* Charts Section (2x2 Grid) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Tendencia de Ventas</h3>
+        {/* Tendencia de Ventas */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
+        >
+          <h3 className="text-lg font-semibold text-white mb-6">📈 Tendencia de Ventas</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={salesData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -355,13 +362,20 @@ const parsePrice = (priceStr) => {
                 fill="#f59e0b"
                 fillOpacity={0.2}
                 strokeWidth={3}
+                isAnimationActive={true}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
-
-        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Productos Más Vendidos</h3>
+        </motion.div>
+  
+        {/* Productos Más Vendidos */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
+        >
+          <h3 className="text-lg font-semibold text-white mb-6">🥇 Productos Más Vendidos</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -372,28 +386,97 @@ const parsePrice = (priceStr) => {
                 outerRadius={120}
                 paddingAngle={5}
                 dataKey="value"
+                isAnimationActive={true}
               >
                 {productData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#111827',
+                  border: '1px solid #374151',
+                  borderRadius: '8px',
+                  color: '#fff'
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            {productData.map((item, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                ></div>
-                <span className="text-sm text-gray-400">
-                  {item.name}: {item.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        </motion.div>
+  
+        {/* Pedidos por Día */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
+        >
+          <h3 className="text-lg font-semibold text-white mb-6">📊 Pedidos por Día</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={pedidosPorDia}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="dia" stroke="#9ca3af" fontSize={12} />
+              <YAxis stroke="#9ca3af" fontSize={12} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#111827",
+                  border: "1px solid #374151",
+                  borderRadius: "8px",
+                  color: "#fff"
+                }}
+              />
+              <Bar 
+                dataKey="cantidad" 
+                fill="url(#colorPedidos)" 
+                radius={[6, 6, 0, 0]} 
+                isAnimationActive={true}
+              />
+              <defs>
+                <linearGradient id="colorPedidos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
+                  <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.6}/>
+                </linearGradient>
+              </defs>
+            </BarChart>
+          </ResponsiveContainer>
+        </motion.div>
+  
+        {/* Horas Pico */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2 }}
+          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
+        >
+          <h3 className="text-lg font-semibold text-white mb-6">🕒 Horas Pico</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={horasPico}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="hora" stroke="#9ca3af" fontSize={12} />
+              <YAxis stroke="#9ca3af" fontSize={12} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#111827",
+                  border: "1px solid #374151",
+                  borderRadius: "8px",
+                  color: "#fff"
+                }}
+              />
+              <Bar 
+                dataKey="cantidad" 
+                fill="url(#colorHoras)" 
+                radius={[6, 6, 0, 0]} 
+                isAnimationActive={true}
+              />
+              <defs>
+                <linearGradient id="colorHoras" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.6}/>
+                </linearGradient>
+              </defs>
+            </BarChart>
+          </ResponsiveContainer>
+        </motion.div>
       </div>
     </div>
   );

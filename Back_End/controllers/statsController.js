@@ -145,3 +145,54 @@ export const getIngresosMes = async (req, res) => {
       res.status(500).json({ message: "Error interno del servidor" });
     }
   };
+
+
+  export const getPedidosPorDia = async (req, res) => {
+    try {
+      const pedidos = await Order.aggregate([
+        {
+          $group: {
+            _id: { $dayOfWeek: "$createdAt" },
+            cantidad: { $sum: 1 }
+          }
+        },
+        { $sort: { "_id": 1 } }
+      ]);
+  
+      const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  
+      const resultado = pedidos.map(p => ({
+        dia: diasSemana[p._id - 1],
+        cantidad: p.cantidad
+      }));
+  
+      res.json(resultado);
+    } catch (error) {
+      console.error("Error obteniendo pedidos por día:", error);
+      res.status(500).json({ error: "Error al obtener pedidos por día" });
+    }
+  };
+
+  export const getHorasPico = async (req, res) => {
+    try {
+      const horas = await Order.aggregate([
+        {
+          $group: {
+            _id: { $hour: "$createdAt" }, 
+            cantidad: { $sum: 1 }
+          }
+        },
+        { $sort: { "_id": 1 } }
+      ]);
+  
+      const resultado = horas.map(h => ({
+        hora: `${h._id.toString().padStart(2, "0")}:00`,
+        cantidad: h.cantidad
+      }));
+  
+      res.json(resultado);
+    } catch (error) {
+      console.error("Error obteniendo horas pico:", error);
+      res.status(500).json({ error: "Error al obtener horas pico" });
+    }
+  };

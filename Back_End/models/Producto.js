@@ -1,17 +1,17 @@
 import mongoose from 'mongoose';
 
 const productoSchema = new mongoose.Schema({
-  title: String,
+  title: String, //
   description: String,
-  price: String, // Puedes cambiar a Number si haces cálculos
+  price: String,
   image: String,
-  category: String,
+  category: String,//
   popular: Boolean,
   new: Boolean,
-  stock: Number,
-  minimo: Number,
+  stock: Number,//
+  minimo: Number,//
   unidad: String,
-  estado: {
+  estado: {//
     type: Boolean,
     default: true
   }
