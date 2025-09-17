@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Package,DollarSign, ShoppingCart,Search, Bell,Settings,User,Home,FileText,MessageCircle,Eye,Edit,Trash2,CheckCircle,Plus} from 'lucide-react';
+import { Users, Package,DollarSign, ShoppingCart,Search, Bell,Settings,User,Home,FileText,MessageCircle,Eye,Edit,Trash2,CheckCircle,Plus, X } from 'lucide-react';
 import {XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,PieChart, Pie, Cell, AreaChart, Area,  BarChart, Bar} from 'recharts';
 import { motion } from "framer-motion";
 import ProductUpdateModal from '../components/ProductUpdateModal';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -15,6 +16,7 @@ const Dashboard = () => {
   const [ingresosMes, setIngresosMes] = useState(0);
   const [pedidosPorDia, setPedidosPorDia] = useState([]);
   const [horasPico, setHorasPico] = useState([]);
+  const navigate = useNavigate();
 
   // Datos para gráficas
   useEffect(() => {
@@ -174,7 +176,15 @@ const parsePrice = (priceStr) => {
     }
   };
 
-  const [orders, setOrders] = useState([]);
+const [orders, setOrders] = useState([]);
+const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [selectedOrder, setSelectedOrder] = useState(null);
+const [newStatus, setNewStatus] = useState('');
+const [newDescription, setNewDescription] = useState('');
+
+
 
   useEffect(() => {
      const fetchOrders = async () => {
@@ -198,10 +208,93 @@ const parsePrice = (priceStr) => {
      fetchOrders();
       }, []);
 
+      // Ver pedido
+      const openViewModal = (order) => {
+        setSelectedOrder(order);
+        setIsViewModalOpen(true);
+      };
+
+      // Editar pedido
+      const openEditModal = (order) => {
+        setSelectedOrder(order);
+        setNewStatus(order.status);
+        setNewDescription(order.orderDescription || '');
+        setIsEditModalOpen(true);
+      };
+
+      // Guardar cambios en edición
+      const handleUpdateOrder = async () => {
+        if (!selectedOrder) return;
+
+        try {
+          const res = await fetch(`http://localhost:5000/api/orders/${selectedOrder.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus, orderDescription: newDescription }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === selectedOrder.id
+                  ? { ...o, status: newStatus, orderDescription: newDescription }
+                  : o
+              )
+            );
+            setIsEditModalOpen(false);
+            setSelectedOrder(null);
+          } else {
+            alert(data.message || "Error al actualizar pedido");
+          }
+        } catch (err) {
+          console.error("Error al actualizar pedido:", err);
+          alert("Error de conexión con el servidor");
+        }
+      };
+
+      // Eliminar pedido
+      const openDeleteModal = (order) => {
+        setSelectedOrder(order);
+        setIsDeleteModalOpen(true);
+      };
+
+      const handleConfirmDelete = async () => {
+        if (!selectedOrder) return;
+
+        try {
+          const res = await fetch(`http://localhost:5000/api/orders/${selectedOrder.id}`, {
+            method: "DELETE",
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            setOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+            setIsDeleteModalOpen(false);
+            setSelectedOrder(null);
+          } else {
+            alert(data.message || "Error al eliminar pedido");
+          }
+        } catch (err) {
+          console.error("Error al eliminar pedido:", err);
+          alert("Error de conexión con el servidor");
+        }
+      };
+
+
 
       const [contacts, setContacts] = useState([]);
       const [isLoading, setIsLoading] = useState(true);
       const [error, setError] = useState(null);
+      const [isViewContactModalOpen, setIsViewContactModalOpen] = useState(false);
+      const [selectedContact, setSelectedContact] = useState(null);
+
+      const openViewContactModal = (contact) => {
+        setSelectedContact(contact);
+        setIsViewContactModalOpen(true);
+      };
+
     
       useEffect(() => {
         const fetchContacts = async () => {
@@ -249,6 +342,13 @@ const parsePrice = (priceStr) => {
       if (contacts.length === 0) {
         return <div className="text-center text-gray-400 py-10">No hay mensajes de contacto.</div>;
       }
+
+
+      const handleLogout = () => {
+        localStorage.removeItem('token'); 
+        localStorage.removeItem('user');  
+        navigate('/LR'); 
+      };
 
   const menuItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
@@ -483,64 +583,80 @@ const parsePrice = (priceStr) => {
 
   const OrdersContent = () => (
     <div className="space-y-6">
-    <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-white">Gestión de Pedidos</h3>
-        <div className="flex space-x-3">
-          <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
-            <option>Todos los estados</option>
-            <option>Pendiente</option>
-            <option>Preparando</option>
-            <option>Entregado</option>
-            <option>Cancelado</option>
-          </select>
+      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-white">Gestión de Pedidos</h3>
+          <div className="flex space-x-3">
+            <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
+              <option>Todos los estados</option>
+              <option>Pendiente</option>
+              <option>Preparando</option>
+              <option>Entregado</option>
+              <option>Cancelado</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="text-left py-3 px-4 font-medium text-gray-300">ID</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Cliente</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Productos</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Total</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Hora</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(order => (
+                <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                  <td className="py-3 px-4 font-medium text-white">#{order.id}</td>
+                  <td className="py-3 px-4 text-gray-300">{order.customer}</td>
+                  <td className="py-3 px-4 text-gray-300 text-sm">{order.items}</td>
+                  <td className="py-3 px-4 font-medium text-yellow-400">
+                    ${order.total.toLocaleString()}
+                  </td>
+                  <td className="py-3 px-4 text-gray-300">{order.status}</td>
+                  <td className="py-3 px-4 text-gray-300 text-sm">{order.time}</td>
+                  <td className="py-3 px-4">
+                  <div className="flex space-x-2">
+                      {/* Ver */}
+                      <button
+                        onClick={() => openViewModal(order)}
+                        className="text-yellow-400 hover:text-yellow-300"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+
+                      {/* Editar */}
+                      <button
+                        onClick={() => openEditModal(order)}
+                        className="text-blue-400 hover:text-blue-300"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+
+                      {/* Eliminar */}
+                      <button
+                        onClick={() => openDeleteModal(order)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-700">
-              <th className="text-left py-3 px-4 font-medium text-gray-300">ID</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Cliente</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Productos</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Total</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Hora</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map(order => (
-              <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                <td className="py-3 px-4 font-medium text-white">#{order.id}</td>
-                <td className="py-3 px-4 text-gray-300">{order.customer}</td>
-                <td className="py-3 px-4 text-gray-300 text-sm">{order.items}</td>
-                <td className="py-3 px-4 font-medium text-yellow-400">${order.total.toLocaleString()}</td>
-                <td className="py-3 px-4">
-                <td className="py-3 px-4 text-gray-300">
-                  {order.status}
-                </td>
-                </td>
-                <td className="py-3 px-4 text-gray-300 text-sm">{order.time}</td>
-                <td className="py-3 px-4">
-                  <div className="flex space-x-2">
-                    <button className="text-yellow-400 hover:text-yellow-300">
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button className="text-blue-400 hover:text-blue-300">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
-  </div>
-);
+  );
+  
 
   const InventoryContent = () => (
     <div className="space-y-6">
@@ -741,7 +857,10 @@ const parsePrice = (priceStr) => {
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex space-x-2">
-                    <button className="text-yellow-400 hover:text-yellow-300">
+                  <button 
+                      onClick={() => openViewContactModal(contact)}
+                      className="text-yellow-400 hover:text-yellow-300"
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
                     <button className="text-green-400 hover:text-green-300">
@@ -830,9 +949,14 @@ className="bg-black border border-gray-700 rounded-xl pl-10 pr-4 py-2 text-white
 )}
 </button>
 
-<button className="p-2 text-gray-400 hover:text-yellow-400 transition-colors">
-<Settings className="w-5 h-5" />
+<button
+  onClick={handleLogout}
+  title="Cerrar sesión"
+  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+>
+  <Settings className="w-5 h-5" />
 </button>
+
 
 <div className="flex items-center space-x-2">
 <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
@@ -905,6 +1029,182 @@ className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-a
     setSelectedProduct(null);
   }}
 />
+{/* Modal Ver Pedido */}
+{isViewModalOpen && selectedOrder && (
+  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.8, opacity: 0 }}
+      className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[28rem]"
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Eye className="w-5 h-5 text-yellow-400" />
+          Detalles del Pedido
+        </h2>
+        <button onClick={() => setIsViewModalOpen(false)}>
+          <X className="w-6 h-6 text-gray-400 hover:text-white" />
+        </button>
+      </div>
+
+      <div className="space-y-2 text-gray-300">
+        <p><span className="font-semibold">ID:</span> #{selectedOrder.id}</p>
+        <p><span className="font-semibold">Cliente:</span> {selectedOrder.customer}</p>
+        <p><span className="font-semibold">Productos:</span> {selectedOrder.items}</p>
+        <p><span className="font-semibold">Total:</span> ${selectedOrder.total.toLocaleString()}</p>
+        <p><span className="font-semibold">Estado:</span> {selectedOrder.status}</p>
+        <p><span className="font-semibold">Fecha:</span> {selectedOrder.time}</p>
+        {selectedOrder.orderDescription && (
+          <p><span className="font-semibold">Descripción:</span> {selectedOrder.orderDescription}</p>
+        )}
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={() => setIsViewModalOpen(false)}
+          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black font-semibold shadow-md"
+        >
+          Cerrar
+        </button>
+      </div>
+    </motion.div>
+  </div>
+)}
+
+{/* Modal Editar Pedido */}
+{isEditModalOpen && selectedOrder && (
+  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <motion.div
+      initial={{ y: -50, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: -50, opacity: 0 }}
+      className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[30rem]"
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Edit className="w-5 h-5 text-yellow-400" />
+          Editar Pedido
+        </h2>
+        <button onClick={() => setIsEditModalOpen(false)}>
+          <X className="w-6 h-6 text-gray-400 hover:text-white" />
+        </button>
+      </div>
+
+      <div className="mb-4 space-y-2 text-gray-300">
+        <p><span className="font-semibold">Cliente:</span> {selectedOrder.customer}</p>
+        <p><span className="font-semibold">Productos:</span> {selectedOrder.items}</p>
+        <p><span className="font-semibold">Total:</span> ${selectedOrder.total.toLocaleString()}</p>
+        <p><span className="font-semibold">Fecha:</span> {selectedOrder.time}</p>
+      </div>
+
+      <label className="block text-gray-300 mb-2">Estado</label>
+      <select
+        value={newStatus}
+        onChange={(e) => setNewStatus(e.target.value)}
+        className="w-full mb-4 px-3 py-2 rounded-lg bg-black border border-gray-700 text-white focus:ring-2 focus:ring-yellow-500"
+      >
+        <option value="pendiente">Pendiente</option>
+        <option value="preparando">Preparando</option>
+        <option value="entregado">Entregado</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+
+      <label className="block text-gray-300 mb-2">Descripción</label>
+      <textarea
+        value={newDescription}
+        onChange={(e) => setNewDescription(e.target.value)}
+        className="w-full mb-4 px-3 py-2 rounded-lg bg-black border border-gray-700 text-white focus:ring-2 focus:ring-yellow-500"
+      />
+
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={() => setIsEditModalOpen(false)}
+          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white shadow-md"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleUpdateOrder}
+          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black font-semibold shadow-md"
+        >
+          Guardar
+        </button>
+      </div>
+    </motion.div>
+  </div>
+)}
+
+{/* Modal Confirmar Eliminación */}
+{isDeleteModalOpen && selectedOrder && (
+  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <motion.div
+      initial={{ y: 50, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 50, opacity: 0 }}
+      className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[24rem] text-center"
+    >
+      <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-3" />
+      <h2 className="text-xl font-bold text-white mb-2">Eliminar Pedido</h2>
+      <p className="text-gray-300 mb-6">
+        ¿Seguro que quieres eliminar el pedido{" "}
+        <span className="text-yellow-400 font-semibold">#{selectedOrder.id}</span>?
+      </p>
+      <div className="flex justify-center space-x-3">
+        <button
+          onClick={() => setIsDeleteModalOpen(false)}
+          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white shadow-md"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleConfirmDelete}
+          className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold shadow-md"
+        >
+          Eliminar
+        </button>
+      </div>
+    </motion.div>
+  </div>
+)}
+{/* Modal Ver Contacto */}
+{isViewContactModalOpen && selectedContact && (
+  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[28rem]">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Eye className="w-5 h-5 text-yellow-400" />
+          Detalles del Contacto
+        </h2>
+        <button onClick={() => setIsViewContactModalOpen(false)}>
+          <X className="w-6 h-6 text-gray-400 hover:text-white" />
+        </button>
+      </div>
+
+      {/* Info */}
+      <div className="space-y-2 text-gray-300">
+        <p><span className="font-semibold">Nombre:</span> {selectedContact.name}</p>
+        <p><span className="font-semibold">Correo:</span> {selectedContact.correo}</p>
+        <p><span className="font-semibold">Teléfono:</span> {selectedContact.telefono || '—'}</p>
+        <p><span className="font-semibold">Asunto:</span> {selectedContact.asunto}</p>
+        <p><span className="font-semibold">Mensaje:</span> {selectedContact.mensaje}</p>
+        <p><span className="font-semibold">Fecha:</span> {formatFecha(selectedContact.fecha)}</p>
+        <p><span className="font-semibold">Estado:</span> {selectedContact.estado}</p>
+      </div>
+
+      {/* Footer */}
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={() => setIsViewContactModalOpen(false)}
+          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black font-semibold shadow-md"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
 </div>
 </div>

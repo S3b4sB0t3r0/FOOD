@@ -4,6 +4,8 @@ import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
 
+
+////////////////////////////////////////////////////////////// MOSTRAR REPORTES //////////////////////////////////////////////////////////////
 export const getReportStats = async (req, res) => {
   try {
     const totalVentas = await Order.aggregate([
@@ -24,8 +26,7 @@ export const getReportStats = async (req, res) => {
   }
 };
 
-
-// Generar PDF
+////////////////////////////////////////////////////////////// GENERAR REPORTE PDF //////////////////////////////////////////////////////////////
 export const generarReportePDF = async (req, res) => {
     try {
       const doc = new PDFDocument({ margin: 50 });

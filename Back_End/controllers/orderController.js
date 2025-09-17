@@ -3,6 +3,7 @@ import Producto from '../models/Producto.js';
 import { enviarCorreoPedido } from '../services/emailService.js';
 import mongoose from 'mongoose';
 
+////////////////////////////////////////////////////////////// CREACION DE ORDEN //////////////////////////////////////////////////////////////
 export const createOrder = async (req, res) => {
   const { items, totalPrice, orderDescription, status, customerEmail } = req.body;
   const userId = req.userId; 
@@ -63,6 +64,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
+////////////////////////////////////////////////////////////// VER ORDENES USUARIO //////////////////////////////////////////////////////////////
 export const getOrderUser = async (req, res) => {
   try {
     const { email } = req.query;
@@ -86,6 +88,7 @@ export const getOrderUser = async (req, res) => {
   }
 };
 
+////////////////////////////////////////////////////////////// VER ORDENES ADMIN  //////////////////////////////////////////////////////////////
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 }).lean();
@@ -109,5 +112,74 @@ export const getAllOrders = async (req, res) => {
   } catch (error) {
     console.error('Error al obtener todas las órdenes:', error);
     res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+
+////////////////////////////////////////////////////////////// ACTUALIZAR ORDEN //////////////////////////////////////////////////////////////
+export const updateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, orderDescription } = req.body;
+
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID de pedido no válido." });
+    }
+
+    // Validar campos obligatorios
+    if (!status && !orderDescription) {
+      return res.status(400).json({
+        message: "Debes enviar al menos un campo para actualizar.",
+      });
+    }
+
+    // Validar estado permitido
+    const estadosPermitidos = ["pendiente", "preparando", "entregado", "cancelado"];
+    if (status && !estadosPermitidos.includes(status.toLowerCase())) {
+      return res.status(400).json({
+        message: `Estado inválido. Los permitidos son: ${estadosPermitidos.join(", ")}`,
+      });
+    }
+
+    // Actualizar pedido
+    const order = await Order.findByIdAndUpdate(
+      id,
+      {
+        ...(status && { status: status.toLowerCase() }),
+        ...(orderDescription && { orderDescription }),
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Pedido no encontrado." });
+    }
+
+    res.status(200).json({
+      message: "Pedido actualizado correctamente.",
+      order,
+    });
+  } catch (error) {
+    console.error("Error al actualizar pedido:", error);
+    res.status(500).json({ message: "Error al actualizar el pedido." });
+  }
+};
+
+
+////////////////////////////////////////////////////////////// ELIMINAR ORDEN //////////////////////////////////////////////////////////////
+export const deleteOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findByIdAndDelete(id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Pedido no encontrado.' });
+    }
+
+    res.status(200).json({ message: 'Pedido eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar pedido:', error);
+    res.status(500).json({ message: 'Error al eliminar el pedido.' });
   }
 };

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { enviarCorreoRegistro, enviarCorreoRecuperacion } from '../services/emailService.js';
 
+////////////////////////////////////////////////////////////// REGISTER //////////////////////////////////////////////////////////////
 export const register = async (req, res) => {
   try {
     const { name, correo, contraseña } = req.body;
@@ -67,7 +68,7 @@ export const register = async (req, res) => {
   }
 };
 
-
+////////////////////////////////////////////////////////////// LOGIN //////////////////////////////////////////////////////////////
 export const login = async (req, res) => {
   try {
     const { correo, contraseña } = req.body;
@@ -104,8 +105,7 @@ export const login = async (req, res) => {
   }
 };
 
-// Ver informacion del perfil que inicio sesion 
-
+////////////////////////////////////////////////////////////// PERIL DEL LA PERSONA //////////////////////////////////////////////////////////////
 export const getProfile = async (req, res) => {
   try {
     const userId = req.userId;
@@ -127,9 +127,7 @@ export const getProfile = async (req, res) => {
   }
 };
 
-
-// Actualizar informacion del perfil que inicio sesion
-
+////////////////////////////////////////////////////////////// ACTUALIZAR PERFIL //////////////////////////////////////////////////////////////
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.userId;
@@ -172,9 +170,7 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-
-// Actualizacion de contraseña desde el perfil 
-
+////////////////////////////////////////////////////////////// ACTUALIZAR CONTRASEÑA PERFIL //////////////////////////////////////////////////////////////
 export const updatePassword = async (req, res) => {
   try {
     const userId = req.userId;
@@ -215,8 +211,7 @@ export const updatePassword = async (req, res) => {
   }
 };
 
-
-// Paso 1: Solicitar recuperación (envía el token por correo)
+////////////////////////////////////////////////////////////// SOLICITAR RECUPERACION //////////////////////////////////////////////////////////////
 export const solicitarRecuperacion = async (req, res) => {
   try {
     const { correo } = req.body;
@@ -243,7 +238,7 @@ export const solicitarRecuperacion = async (req, res) => {
   }
 };
 
-// Paso 2: Cambiar contraseña con token
+////////////////////////////////////////////////////////////// CAMBIAR CONTRASEÑA TOKEN //////////////////////////////////////////////////////////////
 export const cambiarPasswordToken = async (req, res) => {
   try {
     const { token, nuevaContraseña } = req.body;
@@ -278,7 +273,7 @@ export const cambiarPasswordToken = async (req, res) => {
   }
 };
 
-// Todos los Uusuarios Administrador 
+////////////////////////////////////////////////////////////// VER TODOS LOS USUARIOS ADMIN //////////////////////////////////////////////////////////////
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-contraseña -__v -token');
@@ -288,7 +283,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Cambio de estado Adminsitrador 
+////////////////////////////////////////////////////////////// CAMBIO DE ESTADO DE PERFIL //////////////////////////////////////////////////////////////
 export const toggleEstado = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -311,7 +306,7 @@ export const toggleEstado = async (req, res) => {
   }
 };
 
-// Eliminar usuario Adminsitrador 
+////////////////////////////////////////////////////////////// ELMINAR USUARIO //////////////////////////////////////////////////////////////
 export const eliminarUsuario = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);

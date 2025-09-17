@@ -24,8 +24,6 @@ router.post('/recuperar/reset', cambiarPasswordToken);
 router.put('/:id/estado', toggleEstado);
 router.delete('/:id', eliminarUsuario); // 👈 nueva ruta
 
-
-
 // Rutas protegidas con JWT
 router.get('/perfil', authMiddleware, getProfile);
 router.put('/perfil', authMiddleware, updateProfile);
