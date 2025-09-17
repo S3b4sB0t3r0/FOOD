@@ -451,7 +451,37 @@ const LoginRegister  = () => {
                   </button>
                 </div>
               )}
-
+              {!isLogin && (
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="terms"
+                    id="terms"
+                    required
+                    className="w-4 h-4 text-yellow-400 bg-gray-800 border-gray-600 rounded focus:ring-yellow-400 focus:ring-2"
+                  />
+                  <label htmlFor="terms" className="ml-2 text-sm text-gray-300">
+                    Acepto los{' '}
+                    <a
+                      href="../docs/terminos.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-yellow-400 hover:text-yellow-300"
+                    >
+                      Términos y Condiciones
+                    </a>{' '}
+                    y la{' '}
+                    <a
+                      href="/docs/privacidad.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-yellow-400 hover:text-yellow-300"
+                    >
+                      Política de Privacidad
+                    </a>
+                  </label>
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={isLoading}

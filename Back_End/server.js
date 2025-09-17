@@ -1,8 +1,9 @@
+// Importacion de bibliotecas
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
+// importacion de rutas
 import contactoRoutes from './routes/contactoRoutes.js';
 import equipoRoutes from './routes/equipoRoutes.js';
 import productoRoutes from './routes/productoRoutes.js';
@@ -35,5 +36,5 @@ app.use('/api/reportes', reportesRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor bailando en http://localhost:${PORT}`);
 });

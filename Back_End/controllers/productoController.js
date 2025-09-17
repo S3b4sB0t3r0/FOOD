@@ -1,6 +1,6 @@
 import Producto from '../models/Producto.js';
 
-// Traer todos los productos 
+////////////////////////////////////////////////////////////// MOSTRAR PRODUCTOS //////////////////////////////////////////////////////////////
 export const getProductos = async (req, res) => {
   try {
     const productos = await Producto.find();
@@ -10,7 +10,7 @@ export const getProductos = async (req, res) => {
   }
 };
 
-// Traer solo los productos activos
+////////////////////////////////////////////////////////////// MOSTRAR PRODUCTOS CLIENTE //////////////////////////////////////////////////////////////
 export const getClienteProductos = async (req, res) => {
   try {
     const productos = await Producto.find({ estado: true });
@@ -20,9 +20,7 @@ export const getClienteProductos = async (req, res) => {
   }
 };
 
-
-// cambio de estado de los productos
-
+////////////////////////////////////////////////////////////// CAMBIO DE ESTADO DE PRODUCTO //////////////////////////////////////////////////////////////
 export const toggleEstadoProducto = async (req, res) => {
   try {
     const producto = await Producto.findById(req.params.id);
@@ -45,7 +43,7 @@ export const toggleEstadoProducto = async (req, res) => {
   }
 };
 
-// Actualizar un producto (incluye cambio automático de estado si stock llega a 0)
+////////////////////////////////////////////////////////////// ACTUALIZACION AUTOMATICA DE ESTADOS DE PRODUCTOS //////////////////////////////////////////////////////////////
 export const updateProducto = async (req, res) => {
   try {
     const { id } = req.params;
@@ -73,8 +71,7 @@ export const updateProducto = async (req, res) => {
   }
 };
 
-
-// Crear un nuevo producto
+////////////////////////////////////////////////////////////// CREAR UN NUEVO PRODUCTO //////////////////////////////////////////////////////////////
 export const createProducto = async (req, res) => {
   try {
     const data = req.body;

@@ -1,6 +1,7 @@
 import Contacto from "../models/Contacto.js";
-import { enviarCorreoContacto } from '../services/emailService.js'; // ajusta la ruta según tu estructura
+import { enviarCorreoContacto } from '../services/emailService.js'; 
 
+////////////////////////////////////////////////////////////// ENVIO DE CONTACTO //////////////////////////////////////////////////////////////
 export const postContacto = async (req, res) => {
   try {
     const { name, correo, telefono, asunto, mensaje } = req.body;
@@ -20,7 +21,7 @@ export const postContacto = async (req, res) => {
   }
 };
 
-
+////////////////////////////////////////////////////////////// MOSTRAR CONTACTOS //////////////////////////////////////////////////////////////
 export const getContactos = async (req, res) => {
   try {
     const contactos = await Contacto.find();

@@ -1,9 +1,7 @@
 import Order from '../models/Order.js';
 import User from '../models/User.js';
 
-/**
- * 1. Tendencia de ventas por mes
- */
+////////////////////////////////////////////////////////////// TENDENCIAS DE VENTAS //////////////////////////////////////////////////////////////
 export const getTendenciaVentas = async (req, res) => {
   try {
     const ventas = await Order.aggregate([
@@ -28,9 +26,7 @@ export const getTendenciaVentas = async (req, res) => {
   }
 };
 
-/**
- * 2. Ventas de hoy
- */
+////////////////////////////////////////////////////////////// VENTAS DEL DIA //////////////////////////////////////////////////////////////
 export const getVentasHoy = async (req, res) => {
   try {
     const hoy = new Date();
@@ -48,9 +44,7 @@ export const getVentasHoy = async (req, res) => {
   }
 };
 
-/**
- * 3. Pedidos de hoy
- */
+////////////////////////////////////////////////////////////// PEDIDOS DE HOY //////////////////////////////////////////////////////////////
 export const getPedidosHoy = async (req, res) => {
   try {
     const hoy = new Date();
@@ -65,10 +59,7 @@ export const getPedidosHoy = async (req, res) => {
   }
 };
 
-/**
- * 4. Usuarios activos (último mes)
- */
-// Usuarios activos (último mes)
+////////////////////////////////////////////////////////////// USUARIOS ACTIVOS //////////////////////////////////////////////////////////////
 export const getUsuariosActivos = async (req, res) => {
     try {
       const mesAtras = new Date();
@@ -93,9 +84,7 @@ export const getUsuariosActivos = async (req, res) => {
     }
   };
 
-/**
- * 5. Productos más vendidos
- */
+////////////////////////////////////////////////////////////// PRODUCTOS MAS VENDIDOS //////////////////////////////////////////////////////////////
 export const getProductosMasVendidos = async (req, res) => {
   try {
     const productos = await Order.aggregate([
@@ -117,6 +106,7 @@ export const getProductosMasVendidos = async (req, res) => {
   }
 };
 
+////////////////////////////////////////////////////////////// INGRESOS POR MES //////////////////////////////////////////////////////////////
 export const getIngresosMes = async (req, res) => {
     try {
       const ahora = new Date();
@@ -146,7 +136,7 @@ export const getIngresosMes = async (req, res) => {
     }
   };
 
-
+////////////////////////////////////////////////////////////// PEDIDOS POR DIA //////////////////////////////////////////////////////////////
   export const getPedidosPorDia = async (req, res) => {
     try {
       const pedidos = await Order.aggregate([
@@ -173,7 +163,8 @@ export const getIngresosMes = async (req, res) => {
     }
   };
 
-  export const getHorasPico = async (req, res) => {
+////////////////////////////////////////////////////////////// HORAS PICO MAYOR VENTAS //////////////////////////////////////////////////////////////
+export const getHorasPico = async (req, res) => {
     try {
       const horas = await Order.aggregate([
         {
@@ -195,4 +186,4 @@ export const getIngresosMes = async (req, res) => {
       console.error("Error obteniendo horas pico:", error);
       res.status(500).json({ error: "Error al obtener horas pico" });
     }
-  };
+};
