@@ -397,19 +397,10 @@ const ProfilePage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-white font-medium mb-2">Nombre Completo</label>
-                    {isEditingInfo ? (
-                      <input
-                        type="text"
-                        name="name"
-                        value={editForm.name}
-                        onChange={(e) => handleInputChange(e, 'edit')}
-                        className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-yellow-400 focus:outline-none transition-colors duration-300"
-                      />
-                    ) : (
                       <div className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white">
                         {userInfo.name}
                       </div>
-                    )}
+                    
                   </div>
 
                   <div>

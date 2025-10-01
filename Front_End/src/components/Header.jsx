@@ -5,6 +5,7 @@ import {
   Menu, X, User, ShoppingCart, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import LOGO from '../img/LOGO.png';
 
 const Header = () => {
@@ -13,6 +14,9 @@ const Header = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const { user, token, logout } = useAuth();
+  const { cart } = useCart();
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
 
   const toggleDropdown = (name) => {
     setOpenDropdown((prev) => (prev === name ? null : name));
@@ -128,25 +132,34 @@ const Header = () => {
                 >
                   <User className="w-5 h-5" />
                 </button>
-                {user && token && (
-                  <span className="text-sm text-yellow-400 font-semibold truncate max-w-[120px]">
-                    {getFirstName(user.name)}
-                  </span>
+
+                {/* Dropdown cuando hay usuario */}
+                {userMenuOpen && user && token && (
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-xl shadow-2xl">
+                    <div className="py-3 px-4 border-b border-gray-700">
+                      <p className="text-sm font-semibold text-yellow-400 truncate">
+                        {getFirstName(user.name)}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">{user.rol}</p>
+                    </div>
+                    <div className="py-2">
+                      <Link to="/cuenta" onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Cuenta</Link>
+                      <button
+                        onClick={() => { logout(); handleLinkClick(); }}
+                        className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:text-yellow-400"
+                      >
+                        Cerrar Sesión
+                      </button>
+                    </div>
+                  </div>
                 )}
-                {userMenuOpen && (
+
+                {/* Dropdown cuando NO hay usuario */}
+                {userMenuOpen && !user && !token && (
                   <div className="absolute top-full right-0 mt-2 w-48 bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-xl shadow-2xl">
                     <div className="py-2">
-                      {user ? (
-                        <>
-                          <Link to="/cuenta" onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Cuenta</Link>
-                          <button onClick={() => { logout(); handleLinkClick(); }} className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Cerrar Sesión</button>
-                        </>
-                      ) : (
-                        <>
-                          <Link to="/LR" onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Iniciar Sesión</Link>
-                          <Link to="/LR" onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Registrarse</Link>
-                        </>
-                      )}
+                      <Link to="/LR" onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Iniciar Sesión</Link>
+                      <Link to="/LR" onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Registrarse</Link>
                     </div>
                   </div>
                 )}
@@ -154,9 +167,15 @@ const Header = () => {
 
               {/* Botón de compra */}
               {user && token && (
-                <Link to="/cart" className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-2 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-yellow-400/25">
+                <Link to="/cart" className="relative hidden md:flex items-center space-x-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-2 rounded-lg font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-yellow-400/25">
                   <ShoppingCart className="w-4 h-4" />
                   <span>Comprar Ahora</span>
+                  
+                  {totalItems > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md">
+                      {totalItems}
+                    </span>
+                  )}
                 </Link>
               )}
 
@@ -182,9 +201,12 @@ const Header = () => {
             <Link to="/contacto" onClick={handleLinkClick} className="block py-3 px-4 text-gray-300 hover:text-yellow-400">Contacto</Link>
 
             {user && token && (
-              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 rounded-md text-yellow-400 font-medium">
-                <User className="w-4 h-4 mr-2" />
-                Bienvenido, {getFirstName(user.name)}
+              <div className="flex flex-col items-start px-4 py-2 bg-gray-800 rounded-md text-yellow-400 font-medium">
+                <div className="flex items-center">
+                  <User className="w-4 h-4 mr-2" />
+                  Bienvenido, {getFirstName(user.name)}
+                </div>
+                <span className="text-xs text-gray-400">{user.rol}</span>
               </div>
             )}
 

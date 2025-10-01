@@ -73,19 +73,37 @@ export const login = async (req, res) => {
   try {
     const { correo, contraseña } = req.body;
 
-    const user = await User.findOne({ correo, estado: true });
+    const user = await User.findOne({ correo });
     if (!user) {
       return res.status(404).json({ message: 'Correo o contraseña inválidos' });
     }
 
+    // 🔹 Si está bloqueado
+    if (!user.estado) {
+      return res.status(403).json({
+        message: 'La cuenta está bloqueada. Debe restablecer su contraseña para desbloquearla.'
+      });
+    }
+
     const isMatch = await bcrypt.compare(contraseña, user.contraseña);
     if (!isMatch) {
+      user.intentosFallidos = (user.intentosFallidos || 0) + 1;
+
+      if (user.intentosFallidos >= 3) {
+        user.estado = false; // Bloqueamos la cuenta
+      }
+
+      await user.save();
       return res.status(401).json({ message: 'Correo o contraseña inválidos' });
     }
 
+    // ✅ Si contraseña correcta → resetear intentos
+    user.intentosFallidos = 0;
+    await user.save();
+
     const token = jwt.sign(
       { id: user._id, rol: user.rol },
-      process.env.JWT_SECRET || 'secreto', // define en tu .env
+      process.env.JWT_SECRET || 'secreto',
       { expiresIn: '2h' }
     );
 
@@ -248,7 +266,6 @@ export const cambiarPasswordToken = async (req, res) => {
     }
 
     const user = await User.findOne({ token });
-
     if (!user) {
       return res.status(400).json({ message: 'Token inválido o expirado' });
     }
@@ -263,11 +280,16 @@ export const cambiarPasswordToken = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(nuevaContraseña, salt);
 
+    //  Guardar nueva contraseña y desbloquear cuenta
     user.contraseña = hashedPassword;
     user.token = null;
+    user.intentosFallidos = 0; 
+    user.estado = true; 
     await user.save();
 
-    res.status(200).json({ message: 'Contraseña actualizada correctamente' });
+    res.status(200).json({
+      message: 'Contraseña actualizada correctamente. La cuenta ha sido desbloqueada.'
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error al cambiar la contraseña', error: error.message });
   }

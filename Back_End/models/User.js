@@ -4,11 +4,12 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   correo: { type: String, required: true, unique: true },
   contraseña: { type: String, required: true },
-  estado: { type: Boolean, default: true },
-  direccion : { type: String, default: null },	
+  estado: { type: Boolean, default: true }, // true = activo, false = bloqueado
+  direccion: { type: String, default: null },
   telefono: { type: String, default: null },
   rol: { type: String, default: null },
   token: { type: String, default: null },
+  intentosFallidos: { type: Number, default: 0 }
 }, {
   timestamps: true
 });
