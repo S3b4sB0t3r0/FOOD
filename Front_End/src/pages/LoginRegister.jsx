@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, XCircle, AlertCircle, X, ArrowLeft } from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import LOGO from '../img/LOGO.png';
 
@@ -39,6 +40,7 @@ const CustomAlert = ({ type, message, onClose }) => {
 
     return () => clearTimeout(timer);
   }, [onClose]);
+
 
   return (
     <div className={`fixed top-4 right-4 z-50 max-w-md p-4 border rounded-xl shadow-lg backdrop-blur-sm ${getAlertStyles()} animate-in slide-in-from-right duration-300`}>
@@ -83,6 +85,8 @@ const PasswordStrength = ({ password }) => {
   };
 
   if (!password) return null;
+
+  
 
   return (
     <div className="mt-3 space-y-2">
@@ -197,71 +201,120 @@ const LoginRegister  = () => {
           contraseña: formData.password,
         };
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error en el servidor');
-      }
-
-      if (isLogin) {
-        // Guardar token en localStorage
-        login(data.user, data.token);
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
         
-        showAlert('success', `¡Bienvenido ${data.user.name}!`);
-
-        // Redirigir según el rol después de mostrar la alerta
-        setTimeout(() => {
-          const rol = data.user.rol;
-          if (rol === 'administrador') {
-            navigate('/Admin');
-          } else if (rol === 'cliente') {
-            navigate('/');
-          } else {
-            showAlert('warning', 'Rol no definido');
+          const data = await response.json();
+        
+          if (!response.ok) {
+            throw new Error(data.message || 'Error en el servidor');
           }
-        }, 1500);
+        
+          if (isLogin) {
+            // Guardar token en localStorage
+            login(data.user, data.token);
+            showAlert('success', `¡Bienvenido ${data.user.name}!`);
+        
+            // Redirigir según el rol
+            setTimeout(() => {
+              const rol = data.user.rol;
+              if (rol === 'administrador') {
+                navigate('/Admin');
+              } else if (rol === 'cliente') {
+                navigate('/');
+              } else {
+                showAlert('warning', 'Rol no definido');
+              }
+            }, 1500);
+          } else {
+            showAlert('success', '¡Registro exitoso! Ahora puedes iniciar sesión.');
+            setIsLogin(true);
+            setFormData({
+              email: '',
+              password: '',
+              name: '',
+              confirmPassword: ''
+            });
+          }
+        
+        } catch (err) {
+          let errorMessage = 'Ha ocurrido un error inesperado';
+        
+          if (err.message.includes('fetch')) {
+            errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+          } else if (err.message.includes('401')) {
+            errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+          } else if (err.message.includes('403')) {
+            errorMessage = 'Tu cuenta está bloqueada. Debes restablecer tu contraseña para desbloquearla.';
+            setTimeout(() => {
+              navigate('/restablecer');
+            }, 2000);
+          } else if (err.message.includes('400')) {
+            errorMessage = 'Datos inválidos. Verifica la información ingresada.';
+          } else if (err.message.includes('409')) {
+            errorMessage = 'Este email ya está registrado. Intenta iniciar sesión.';
+          } else if (err.message) {
+            errorMessage = err.message;
+          }
+        
+          showAlert('error', errorMessage);
+        
+        } finally {
+          // 👇 esto siempre se ejecuta
+          setIsLoading(false);
+        }
+  }
+  const [touched, setTouched] = useState({});
 
-      } else {
-        showAlert('success', '¡Registro exitoso! Ahora puedes iniciar sesión.');
-        setIsLogin(true);
-        setFormData({
-          email: '',
-          password: '',
-          name: '',
-          confirmPassword: ''
-        });
-      }
-
-    } catch (err) {
-      let errorMessage = 'Ha ocurrido un error inesperado';
-      
-      if (err.message.includes('fetch')) {
-        errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
-      } else if (err.message.includes('401')) {
-        errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
-      } else if (err.message.includes('400')) {
-        errorMessage = 'Datos inválidos. Verifica la información ingresada.';
-      } else if (err.message.includes('409')) {
-        errorMessage = 'Este email ya está registrado. Intenta iniciar sesión.';
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      showAlert('error', errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
+  
+  const isInvalid = (field) => touched[field] && !formData[field]?.trim();
+  
+  const validateForm = () => {
+    const { name, correo, asunto, mensaje } = formData;
+    return name.trim() && correo.trim() && asunto.trim() && mensaje.trim();
+  };
+
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            borderRadius: '8px',
+            padding: '14px 16px',
+            color: 'white',
+          },
+          success: {
+            style: {
+              background: '#22c55e',
+              boxShadow: '0 0 0 2px #16a34a',
+            },
+            iconTheme: {
+              primary: '#15803d',
+              secondary: '#bbf7d0',
+            },
+          },
+          error: {
+            style: {
+              background: '#ef4444',
+              boxShadow: '0 0 0 2px #b91c1c',
+            },
+            iconTheme: {
+              primary: '#7f1d1d',
+              secondary: '#fecaca',
+            },
+          },
+        }}
+      />
       {/* Alertas */}
       {alert && (
         <CustomAlert
@@ -276,7 +329,13 @@ const LoginRegister  = () => {
       <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-transparent"></div>
       <div className="absolute top-20 left-20 w-32 h-32 bg-yellow-400/10 rounded-full blur-xl animate-pulse"></div>
       <div className="absolute bottom-20 right-20 w-48 h-48 bg-yellow-400/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
-
+      <button
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 z-50 group bg-yellow-500/10 hover:bg-yellow-500/20 backdrop-blur-md border border-yellow-400/20 text-yellow-300 hover:text-white font-medium px-4 py-2 rounded-full flex items-center gap-2 shadow-md hover:shadow-yellow-500/20 transition-all duration-300 hover:scale-105"
+      >
+        <ArrowLeft className="w-5 h-5 transition-transform duration-300 group-hover:-translate-x-1" />
+        <span className="text-sm">Volver al inicio</span>
+      </button>
       <div className="relative flex items-center justify-center min-h-screen px-4 py-12">
         <div className="w-full max-w-md">
           {/* Encabezado */}
@@ -329,7 +388,7 @@ const LoginRegister  = () => {
               {!isLogin && (
                 <div className="group">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Nombre Completo
+                  Nombre Completo {isInvalid('name') && <span className="text-red-500">*</span>}
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -348,7 +407,7 @@ const LoginRegister  = () => {
 
               <div className="group">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Correo Electrónico
+                Correo Electrónico {isInvalid('correo') && <span className="text-red-500">*</span>}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -366,7 +425,7 @@ const LoginRegister  = () => {
 
               <div className="group">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Contraseña
+                  Contraseña {isInvalid('contraseña') && <span className="text-red-500">*</span>}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -395,7 +454,7 @@ const LoginRegister  = () => {
               {!isLogin && (
                 <div className="group">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Confirmar Contraseña
+                    Confirmar Contraseña{isInvalid('contraseña') && <span className="text-red-500">*</span>}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />

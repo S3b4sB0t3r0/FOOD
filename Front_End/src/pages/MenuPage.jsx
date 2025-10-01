@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-// Importar el contexto del carrito
+import { toast, Toaster } from 'react-hot-toast';
 import { useCart, parsePrice } from '../context/CartContext';
 
 // Mapeo de iconos por nombre
@@ -128,7 +128,43 @@ const MenuPage = () => {
   return (
     <div className="min-h-screen bg-black">
       <Header />
-
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          // Estilos generales
+          className: '',
+          duration: 3000,
+          style: {
+            borderRadius: '8px',
+            padding: '12px 16px',
+            fontWeight: '500',
+          },
+          // Estilo éxito
+          success: {
+            style: {
+              background: '#22c55e', // Tailwind green-500
+              color: 'white',
+              boxShadow: '0 0 0 2px #16a34a', // Tailwind green-600
+            },
+            iconTheme: {
+              primary: '#15803d', // Tailwind green-700
+              secondary: '#bbf7d0', // Tailwind green-100
+            },
+          },
+          // Estilo error
+          error: {
+            style: {
+              background: '#ef4444', // Tailwind red-500
+              color: 'white',
+              boxShadow: '0 0 0 2px #b91c1c', // Tailwind red-700
+            },
+            iconTheme: {
+              primary: '#7f1d1d',
+              secondary: '#fecaca',
+            },
+          },
+        }}
+      />
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-black via-gray-900 to-black py-24 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-transparent"></div>
@@ -335,15 +371,15 @@ const MenuPage = () => {
 
                           <button
                             onClick={() => {
-                              console.log('Producto que se agrega:', item);
-                              console.log('Precio original:', item.price);
-                              const priceNumber = parsePrice(item.price);
-                              console.log('Precio convertido a número:', priceNumber);
+                              try {
+                                const priceNumber = parsePrice(item.price);
+                                addToCart({ ...item, price: priceNumber });
 
-                              addToCart({
-                                ...item,
-                                price: priceNumber
-                              });
+                                toast.success(` ${item.title} agregado al carrito`);
+                              } catch (error) {
+                                console.error('Error al agregar al carrito:', error);
+                                toast.error(` No se pudo agregar ${item.title}`);
+                              }
                             }}
                             className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-semibold py-2 rounded-lg text-xs hover:shadow-md hover:shadow-yellow-400/25 transition-all duration-300 transform hover:scale-105"
                           >

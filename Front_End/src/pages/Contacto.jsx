@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, MessageCircle, Send,CheckCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, MessageCircle, Send, CheckCircle } from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
     name: '',
-    correo: '',    // <-- antes 'email'
-    telefono: '',  // <-- antes 'phone'
-    asunto: '',    // <-- antes 'subject'
-    mensaje: ''    // <-- antes 'message'
+    correo: '',    
+    telefono: '',  
+    asunto: '',    
+    mensaje: ''    
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [touched, setTouched] = useState({});
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -21,39 +25,66 @@ const ContactPage = () => {
     }));
   };
   
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  };
+  
+  const isInvalid = (field) => touched[field] && !formData[field]?.trim();
+  
+  const validateForm = () => {
+    const { name, correo, asunto, mensaje } = formData;
+    return name.trim() && correo.trim() && asunto.trim() && mensaje.trim();
+  };
+  
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  try {
-    const response = await fetch('http://localhost:5000/api/contacto', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formData)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setTouched({
+      name: true,
+      correo: true,
+      telefono: true,
+      asunto: true,
+      mensaje: true
     });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setIsSubmitted(true);
-      setFormData({
-        name: '',
-        correo: '',
-        telefono: '',
-        asunto: '',
-        mensaje: ''
-      });
-      setTimeout(() => setIsSubmitted(false), 3000);
-    } else {
-      alert(`Error: ${data.message || 'Ocurrió un error al enviar el formulario'}`);
+  
+    if (!validateForm()) {
+      toast.error('Por favor completa todos los campos obligatorios');
+      return;
     }
-  } catch (error) {
-    alert('Error de red o conexión con el servidor');
-    console.error('Error al enviar:', error);
-  }
-};
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/contacto', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        setIsSubmitted(true);
+        setFormData({
+          name: '',
+          correo: '',
+          telefono: '',
+          asunto: '',
+          mensaje: ''
+        });
+        setTouched({});
+        toast.success('Mensaje enviado con éxito');
+        setTimeout(() => setIsSubmitted(false), 3000);
+      } else {
+        toast.error(`Error: ${data.message || 'Ocurrió un error al enviar el formulario'}`);
+      }
+    } catch (error) {
+      toast.error('Error de red o conexión con el servidor');
+      console.error('Error al enviar:', error);
+    }
+  };
+  
 
 
   const contactInfo = [
@@ -86,6 +117,36 @@ const handleSubmit = async (e) => {
   return (
     <div className="min-h-screen bg-black">
     <Header />
+    <Toaster
+  position="top-right"
+  toastOptions={{
+    style: {
+      borderRadius: '8px',
+      padding: '14px 16px',
+      color: 'white',
+    },
+    success: {
+      style: {
+        background: '#22c55e',
+        boxShadow: '0 0 0 2px #16a34a',
+      },
+      iconTheme: {
+        primary: '#15803d',
+        secondary: '#bbf7d0',
+      },
+    },
+    error: {
+      style: {
+        background: '#ef4444',
+        boxShadow: '0 0 0 2px #b91c1c',
+      },
+      iconTheme: {
+        primary: '#7f1d1d',
+        secondary: '#fecaca',
+      },
+    },
+  }}
+/>
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-black via-gray-900 to-black py-24 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/5 to-transparent"></div>
@@ -182,7 +243,9 @@ const handleSubmit = async (e) => {
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-white font-medium mb-2">Nombre Completo</label>
+                      <label className="block text-white font-medium mb-2">
+                          Nombre Completo {isInvalid('name') && <span className="text-red-500">*</span>}
+                        </label>
                         <input
                           type="text"
                           name="name"
@@ -194,7 +257,9 @@ const handleSubmit = async (e) => {
                         />
                       </div>
                       <div>
-                        <label className="block text-white font-medium mb-2">Correo Electrónico</label>
+                      <label className="block text-white font-medium mb-2">
+                          Correo Electrónico {isInvalid('correo') && <span className="text-red-500">*</span>}
+                        </label>
                         <input
                           type="email"
                           name="correo"
@@ -209,7 +274,9 @@ const handleSubmit = async (e) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-white font-medium mb-2">Teléfono</label>
+                      <label className="block text-white font-medium mb-2">
+                          Teléfono {isInvalid('telefono') && <span className="text-red-500">*</span>}
+                        </label>
                         <input
                           type="tel"
                           name="telefono"
@@ -220,7 +287,9 @@ const handleSubmit = async (e) => {
                         />
                       </div>
                       <div>
-                        <label className="block text-white font-medium mb-2">Asunto</label>
+                      <label className="block text-white font-medium mb-2">
+                          Asunto {isInvalid('asunto') && <span className="text-red-500">*</span>}
+                        </label>
                         <select
                           name="asunto"
                           value={formData.asunto}
@@ -239,7 +308,9 @@ const handleSubmit = async (e) => {
                     </div>
 
                     <div>
-                      <label className="block text-white font-medium mb-2">Mensaje</label>
+                    <label className="block text-white font-medium mb-2">
+                        Mensaje {isInvalid('mensaje') && <span className="text-red-500">*</span>}
+                      </label>
                       <textarea
                         name="mensaje"
                         value={formData.mensaje}
