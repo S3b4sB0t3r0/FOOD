@@ -97,3 +97,47 @@ export const createProducto = async (req, res) => {
     res.status(500).json({ message: 'Error al crear el producto', error });
   }
 };
+
+
+
+////////////////////////////////////////////////////////////// CARGA MASIVA DE PRODUCTOS //////////////////////////////////////////////////////////////
+export const bulkUpdateProductos = async (req, res) => {
+  try {
+    const updates = req.body; // Se espera un array de productos [{ _id, title, price, ... }]
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ message: 'Debe enviar un arreglo de productos para actualizar.' });
+    }
+
+    // Creamos las operaciones en bloque
+    const bulkOps = updates.map((prod) => {
+      if (!prod._id) {
+        // Si no tiene _id, se puede crear nuevo producto
+        return {
+          insertOne: { document: { ...prod, estado: prod.stock === 0 ? false : true } }
+        };
+      } else {
+        // Si tiene _id, se actualiza
+        return {
+          updateOne: {
+            filter: { _id: prod._id },
+            update: {
+              $set: {
+                ...prod,
+                estado: prod.stock === 0 ? false : true // regla automática
+              }
+            }
+          }
+        };
+      }
+    });
+
+    await Producto.bulkWrite(bulkOps);
+
+    res.status(200).json({ message: 'Carga masiva completada correctamente' });
+  } catch (error) {
+    console.error('Error en carga masiva:', error);
+    res.status(500).json({ message: 'Error en la carga masiva de productos', error });
+  }
+};
+
