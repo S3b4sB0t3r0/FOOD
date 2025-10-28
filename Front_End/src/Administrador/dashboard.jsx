@@ -1,1021 +1,340 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Package,DollarSign, ShoppingCart,Search, Bell,Settings,User,Home,FileText,MessageCircle,Eye,Edit,Trash2,CheckCircle,Plus, X } from 'lucide-react';
-import {XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,PieChart, Pie, Cell, AreaChart, Area,  BarChart, Bar} from 'recharts';
+// admin/dashboard.jsx
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import ProductUpdateModal from '../components/ProductUpdateModal';
-import { useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ClipboardList, Package, Users, Mail, BarChart, Settings, User, Search, Bell, LogOut, ChevronRight } from "lucide-react";
+import DashboardContent from "./components/DashboardContent";
+import OrdersContent from "./components/OrdersContent";
+import InventoryContent from "./components/InventoryContent";
+import UsersContent from "./components/UsersContent";
+import ContactsContent from "./components/ContactsContent";
+import ReportsContent from "./components/ReportsContent";
+
+import OrderViewModal from "./components/modals/OrderViewModal";
+import OrderEditModal from "./components/modals/OrderEditModal";
+import OrderDeleteModal from "./components/modals/OrderDeleteModal";
+import ContactViewModal from "./components/modals/ContactViewModal";
+import ProductUpdateModal from "./components/modals/ProductUpdateModal";
+
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
-  const [notifications, setNotifications] = useState(5);
+  const navigate = useNavigate();
+
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+
+  // KPI / gráficas
   const [ventasHoy, setVentasHoy] = useState(0);
   const [pedidosHoy, setPedidosHoy] = useState(0);
   const [usuariosActivos, setUsuariosActivos] = useState(0);
+  const [ingresosMes, setIngresosMes] = useState(0);
+
   const [salesData, setSalesData] = useState([]);
   const [productData, setProductData] = useState([]);
-  const [ingresosMes, setIngresosMes] = useState(0);
   const [pedidosPorDia, setPedidosPorDia] = useState([]);
   const [horasPico, setHorasPico] = useState([]);
-  const navigate = useNavigate();
 
-  // Datos para gráficas
+  // Inventario
+  const [productos, setProductos] = useState([]);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // Usuarios
+  const [users, setUsers] = useState([]);
+
+  // Pedidos
+  const [orders, setOrders] = useState([]);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [newStatus, setNewStatus] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+
+  // Contactos
+  const [contacts, setContacts] = useState([]);
+  const [isViewContactModalOpen, setIsViewContactModalOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(true);
+  const [contactsError, setContactsError] = useState(null);
+
+  // Reportes
+  const [reportStats, setReportStats] = useState(null);
+
+  // ----------------------------
+  // HELPERS
+  // ----------------------------
+  const parsePrice = (priceStr) => {
+    if (typeof priceStr === "number") return priceStr;
+    if (!priceStr) return 0;
+    return Number(String(priceStr).replace(/[$.]/g, "")) || 0;
+  };
+
+  const formatFecha = (fecha) => {
+    try {
+      return new Date(fecha).toLocaleString();
+    } catch {
+      return fecha;
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/LR");
+  };
+
+  // ----------------------------
+  // FETCH: Estadísticas (usamos las mismas rutas del archivo original)
+  // ----------------------------
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Tarjetas
-        const [ventasRes, pedidosRes, usuariosRes, ingresosRes ] = await Promise.all([
-          fetch('http://localhost:5000/api/stats/ventas-hoy').then(r => r.json()),
-          fetch('http://localhost:5000/api/stats/pedidos-hoy').then(r => r.json()),
-          fetch('http://localhost:5000/api/stats/usuarios-activos').then(r => r.json()),
-          fetch('http://localhost:5000/api/stats/ingresos-mes').then(r => r.json())
+        // tarjetas
+        const [ventasRes, pedidosRes, usuariosRes, ingresosRes] = await Promise.all([
+          fetch("http://localhost:5000/api/stats/ventas-hoy").then((r) => r.json()).catch(() => ({})),
+          fetch("http://localhost:5000/api/stats/pedidos-hoy").then((r) => r.json()).catch(() => ({})),
+          fetch("http://localhost:5000/api/stats/usuarios-activos").then((r) => r.json()).catch(() => ({})),
+          fetch("http://localhost:5000/api/stats/ingresos-mes").then((r) => r.json()).catch(() => ({})),
         ]);
-  
-        setVentasHoy(ventasRes.total || 0);
-        setPedidosHoy(pedidosRes.cantidad || 0);
-        setUsuariosActivos(usuariosRes.activos || 0);
-        setIngresosMes(ingresosRes.total || 0);
 
-        // Tendencia de ventas (gráfico)
-        const tendenciaRes = await fetch('http://localhost:5000/api/stats/tendencia-ventas').then(r => r.json());
-        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        setSalesData(tendenciaRes.map(item => ({
-          name: meses[item.mes - 1],
-          ventas: item.total
-        })));
-  
-        // Productos más vendidos
-        const productosRes = await fetch('http://localhost:5000/api/stats/productos-mas-vendidos').then(r => r.json());
-        setProductData(productosRes.map((p, index) => ({
-          name: p._id,
-          value: p.cantidad,
-          color: ['#f59e0b', '#111827', '#374151', '#fbbf24', '#6b7280'][index % 5]
-        })));
-          } catch (err) {
-            console.error('Error cargando estadísticas:', err);
-          }
+        setVentasHoy(ventasRes.total ?? ventasRes.totalVentas ?? 0);
+        setPedidosHoy(pedidosRes.cantidad ?? 0);
+        setUsuariosActivos(usuariosRes.activos ?? 0);
+        setIngresosMes(ingresosRes.total ?? 0);
 
-      // Pedidos por día
-        const pedidosDiaRes = await fetch("http://localhost:5000/api/stats/pedidos-por-dia").then(r => r.json());
-        setPedidosPorDia(pedidosDiaRes);
+        // tendencia ventas
+        const tendenciaRes = await fetch("http://localhost:5000/api/stats/tendencia-ventas")
+          .then((r) => r.json())
+          .catch(() => []);
+        // si tu backend devuelve {mes, total} map a nombre de mes
+        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        setSalesData(
+          Array.isArray(tendenciaRes)
+            ? tendenciaRes.map((item) => ({
+                name: meses[(item.mes ?? item.month) - 1] ?? String(item.mes ?? ""),
+                ventas: item.total ?? item.ventas ?? 0,
+              }))
+            : []
+        );
 
-        // Horas pico
-        const horasRes = await fetch("http://localhost:5000/api/stats/horas-pico").then(r => r.json());
-        setHorasPico(horasRes);
+        // productos mas vendidos
+        const productosRes = await fetch("http://localhost:5000/api/stats/productos-mas-vendidos")
+          .then((r) => r.json())
+          .catch(() => []);
+        setProductData(
+          Array.isArray(productosRes)
+            ? productosRes.map((p, i) => ({
+                name: p._id ?? p.name ?? `Producto ${i + 1}`,
+                value: p.cantidad ?? p.value ?? 0,
+                color: ["#f59e0b", "#111827", "#374151", "#fbbf24", "#6b7280"][i % 5],
+              }))
+            : []
+        );
 
+        // pedidos por dia
+        const pedidosDiaRes = await fetch("http://localhost:5000/api/stats/pedidos-por-dia")
+          .then((r) => r.json())
+          .catch(() => []);
+        setPedidosPorDia(Array.isArray(pedidosDiaRes) ? pedidosDiaRes : []);
+
+        // horas pico
+        const horasRes = await fetch("http://localhost:5000/api/stats/horas-pico")
+          .then((r) => r.json())
+          .catch(() => []);
+        setHorasPico(Array.isArray(horasRes) ? horasRes : []);
+      } catch (err) {
+        console.error("Error cargando estadísticas:", err);
+      }
     };
-  
+
     fetchStats();
   }, []);
 
-
-const [reportStats, setReportStats] = useState(null);
-
-useEffect(() => {
-  if (activeSection === 'reports') {
-    const fetchReportStats = async () => {
+  // ----------------------------
+  // FETCH: Productos (menu)
+  // ----------------------------
+  useEffect(() => {
+    const fetchProductos = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/reportes/estadisticas');
+        const res = await fetch("http://localhost:5000/api/menu"); // ruta original
         const data = await res.json();
-        setReportStats(data);
+        setProductos(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error('Error cargando reportes:', err);
+        console.error("Error al cargar productos:", err);
+        setProductos([]);
       }
     };
-    fetchReportStats();
-  }
-}, [activeSection]);
+    fetchProductos();
+  }, []);
 
-// Botón para descargar PDF
-const handleDownloadPDF = () => {
-  fetch('http://localhost:5000/api/reportes/pdf', {
-    method: 'GET',
-  })
-    .then((response) => {
-      if (!response.ok) throw new Error('Error descargando PDF');
-      return response.blob();
-    })
-    .then((blob) => {
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'Reportes.pdf');
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-    })
-    .catch((error) => {
-      console.error(error);
-      alert('Error al generar el PDF');
-    });
-};
-
- // Datos de inventario
-const [productos, setProductos] = useState([]);
-const [isModalOpen, setIsModalOpen] = useState(false);
-const [selectedProduct, setSelectedProduct] = useState(null);
-
-useEffect(() => {
-  const fetchProductos = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/menu');
-      const data = await res.json();
-      setProductos(data);
-    } catch (error) {
-      console.error('Error al cargar productos:', error);
-    }
-  };
-
-  fetchProductos();
-}, []);
-
-const parsePrice = (priceStr) => {
-  if (typeof priceStr === 'number') return priceStr;
-  return Number(priceStr.replace(/[$.]/g, ''));
-};
-
-
-
-
-  // Usuarios
-  // Busqueda general de usuarios
-  const [users, setUsers] = useState([]);
-
+  // ----------------------------
+  // FETCH: Usuarios
+  // ----------------------------
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/user');
+        const res = await fetch("http://localhost:5000/api/user"); // ruta original
         const data = await res.json();
-        setUsers(data);
-      } catch (error) {
-        console.error('Error al cargar usuarios:', error);
+        setUsers(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error al cargar usuarios:", err);
+        setUsers([]);
       }
     };
-
     fetchUsers();
   }, []);
 
-  // ELiminar ususario
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este usuario?')) return;
-  
+  // ----------------------------
+  // FETCH: Pedidos (admin)
+  // ----------------------------
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/orders/admin/all"); // ruta original
+        const result = await res.json();
+        if (result.orders && Array.isArray(result.orders)) {
+          setOrders(result.orders);
+        } else if (Array.isArray(result)) {
+          setOrders(result);
+        } else {
+          setOrders([]);
+        }
+      } catch (err) {
+        console.error("Error al cargar los pedidos:", err);
+        setOrders([]);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  // ----------------------------
+  // FETCH: Contactos (dashboard)
+  // ----------------------------
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        setIsLoadingContacts(true);
+        const res = await fetch("http://localhost:5000/api/contacto/dashboard"); // ruta original
+        if (!res.ok) throw new Error("Error al obtener contactos");
+        const data = await res.json();
+        setContacts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error al cargar los contactos:", err);
+        setContacts([]);
+        setContactsError(err.message);
+      } finally {
+        setIsLoadingContacts(false);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  // ----------------------------
+  // FETCH: Reportes (estadísticas)
+  // ----------------------------
+  useEffect(() => {
+    const fetchReportStats = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/reportes/estadisticas"); // ruta original
+        if (!res.ok) throw new Error("Error al cargar reportes");
+        const data = await res.json();
+        setReportStats(data);
+      } catch (err) {
+        console.error("Error cargando reportes:", err);
+        setReportStats(null);
+      }
+    };
+    // sólo cargar inicialmente o cuando se abra la sección de reportes
+    if (activeSection === "reports") {
+      fetchReportStats();
+    }
+  }, [activeSection]);
+
+  // ----------------------------
+  // HANDLERS PEDIDOS / USUARIOS / PRODUCTOS (igual que antes)
+  // ----------------------------
+  const openViewModal = (order) => {
+    setSelectedOrder(order);
+    setIsViewModalOpen(true);
+  };
+
+  const openEditModal = (order) => {
+    setSelectedOrder(order);
+    setNewStatus(order.status ?? order.estado ?? "");
+    setNewDescription(order.orderDescription ?? "");
+    setIsEditModalOpen(true);
+  };
+
+  const openDeleteModal = (order) => {
+    setSelectedOrder(order);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleUpdateOrder = async () => {
+    if (!selectedOrder) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/user/${id}`, {
-        method: 'DELETE'
+      const res = await fetch(`http://localhost:5000/api/orders/${selectedOrder.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus, orderDescription: newDescription }),
       });
-  
       const data = await res.json();
-  
       if (res.ok) {
-        setUsers(prev => prev.filter(user => user._id !== id));
+        // refrescar pedidos
+        const resp = await fetch("http://localhost:5000/api/orders/admin/all");
+        const js = await resp.json();
+        setOrders(js.orders ?? js ?? []);
+        setIsEditModalOpen(false);
+        setSelectedOrder(null);
       } else {
-        alert(data.message || 'Error al eliminar usuario');
+        alert(data.message || "Error al actualizar pedido");
       }
     } catch (err) {
-      console.error('Error al eliminar:', err);
-      alert('Error al conectar con el servidor');
+      console.error("Error al actualizar pedido:", err);
+      alert("Error de conexión con el servidor");
     }
   };
 
-const [orders, setOrders] = useState([]);
-const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-const [selectedOrder, setSelectedOrder] = useState(null);
-const [newStatus, setNewStatus] = useState('');
-const [newDescription, setNewDescription] = useState('');
-
-
-
-  useEffect(() => {
-     const fetchOrders = async () => {
-      try {
-       const res = await fetch('http://localhost:5000/api/orders/admin/all');
-       const result = await res.json();
-       
-       
-       if (result.orders && Array.isArray(result.orders)) {
-        setOrders(result.orders);
-       } else {
-       setOrders([]); 
-       console.error('La API no devolvió un array de pedidos en la propiedad "orders".');
-       }
-      } catch (error) {
-       console.error('Error al cargar los pedidos:', error);
-       setOrders([]); 
+  const handleConfirmDelete = async () => {
+    if (!selectedOrder) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/orders/${selectedOrder.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+        setIsDeleteModalOpen(false);
+        setSelectedOrder(null);
+      } else {
+        alert(data.message || "Error al eliminar pedido");
       }
-     };
-     
-     fetchOrders();
-      }, []);
+    } catch (err) {
+      console.error("Error al eliminar pedido:", err);
+      alert("Error de conexión con el servidor");
+    }
+  };
 
-      // Ver pedido
-      const openViewModal = (order) => {
-        setSelectedOrder(order);
-        setIsViewModalOpen(true);
-      };
-
-      // Editar pedido
-      const openEditModal = (order) => {
-        setSelectedOrder(order);
-        setNewStatus(order.status);
-        setNewDescription(order.orderDescription || '');
-        setIsEditModalOpen(true);
-      };
-
-      // Guardar cambios en edición
-      const handleUpdateOrder = async () => {
-        if (!selectedOrder) return;
-
-        try {
-          const res = await fetch(`http://localhost:5000/api/orders/${selectedOrder.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: newStatus, orderDescription: newDescription }),
-          });
-
-          const data = await res.json();
-
-          if (res.ok) {
-            setOrders((prev) =>
-              prev.map((o) =>
-                o.id === selectedOrder.id
-                  ? { ...o, status: newStatus, orderDescription: newDescription }
-                  : o
-              )
-            );
-            setIsEditModalOpen(false);
-            setSelectedOrder(null);
-          } else {
-            alert(data.message || "Error al actualizar pedido");
-          }
-        } catch (err) {
-          console.error("Error al actualizar pedido:", err);
-          alert("Error de conexión con el servidor");
-        }
-      };
-
-      // Eliminar pedido
-      const openDeleteModal = (order) => {
-        setSelectedOrder(order);
-        setIsDeleteModalOpen(true);
-      };
-
-      const handleConfirmDelete = async () => {
-        if (!selectedOrder) return;
-
-        try {
-          const res = await fetch(`http://localhost:5000/api/orders/${selectedOrder.id}`, {
-            method: "DELETE",
-          });
-
-          const data = await res.json();
-          if (res.ok) {
-            setOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
-            setIsDeleteModalOpen(false);
-            setSelectedOrder(null);
-          } else {
-            alert(data.message || "Error al eliminar pedido");
-          }
-        } catch (err) {
-          console.error("Error al eliminar pedido:", err);
-          alert("Error de conexión con el servidor");
-        }
-      };
-
-
-
-      const [contacts, setContacts] = useState([]);
-      const [isLoading, setIsLoading] = useState(true);
-      const [error, setError] = useState(null);
-      const [isViewContactModalOpen, setIsViewContactModalOpen] = useState(false);
-      const [selectedContact, setSelectedContact] = useState(null);
-
-      const openViewContactModal = (contact) => {
-        setSelectedContact(contact);
-        setIsViewContactModalOpen(true);
-      };
-
-    
-      useEffect(() => {
-        const fetchContacts = async () => {
-          try {
-            const response = await fetch('http://localhost:5000/api/contacto/dashboard');
-            
-            if (!response.ok) {
-              throw new Error('Error al obtener los datos. Código de estado: ' + response.status);
-            }
-            
-            const data = await response.json();
-            
-            // Asumiendo que el backend siempre devuelve un array directamente
-            if (Array.isArray(data)) {
-              setContacts(data);
-            } else {
-              setContacts([]);
-              console.error('La API no devolvió un array de contactos.');
-            }
-          } catch (err) {
-            console.error('Error al cargar los contactos:', err);
-            setError(err.message);
-            setContacts([]);
-          } finally {
-            setIsLoading(false);
-          }
-        };
-        
-        fetchContacts();
-      }, []);
-      
-      const formatFecha = (fecha) => {
-        const date = new Date(fecha);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-      };
-    
-      if (isLoading) {
-        return <div className="text-center text-white py-10">Cargando contactos...</div>;
+  const handleDeleteUser = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/user/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsers((prev) => prev.filter((u) => u._id !== id));
+      } else {
+        alert(data.message || "Error al eliminar usuario");
       }
-    
-      if (error) {
-        return <div className="text-center text-red-500 py-10">Error: {error}</div>;
-      }
-      
-      if (contacts.length === 0) {
-        return <div className="text-center text-gray-400 py-10">No hay mensajes de contacto.</div>;
-      }
+    } catch (err) {
+      console.error("Error al eliminar usuario:", err);
+      alert("Error de conexión con el servidor");
+    }
+  };
 
-
-      const handleLogout = () => {
-        localStorage.removeItem('token'); 
-        localStorage.removeItem('user');  
-        navigate('/LR'); 
-      };
-
-  const menuItems = [
-    { id: 'dashboard', icon: Home, label: 'Dashboard' },
-    { id: 'orders', icon: ShoppingCart, label: 'Pedidos' },
-    { id: 'inventory', icon: Package, label: 'Inventario' },
-    { id: 'users', icon: Users, label: 'Usuarios' },
-    { id: 'contacts', icon: MessageCircle, label: 'Contactos' },
-    { id: 'reports', icon: FileText, label: 'Reportes' }
-  ];
-
-  const DashboardContent = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Ventas Hoy */}
-        <motion.div 
-          whileHover={{ scale: 1.03 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Ventas Hoy</p>
-              <p className="text-2xl font-bold text-white">${ventasHoy.toLocaleString()}</p>
-              <p className="text-yellow-400 text-sm font-medium">+12.5% vs ayer</p>
-            </div>
-            <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
-              <DollarSign className="w-6 h-6 text-black" />
-            </div>
-          </div>
-        </motion.div>
-  
-        {/* Pedidos Hoy */}
-        <motion.div 
-          whileHover={{ scale: 1.03 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Pedidos</p>
-              <p className="text-2xl font-bold text-white">{pedidosHoy}</p>
-              <p className="text-yellow-400 text-sm font-medium">+8.2% vs ayer</p>
-            </div>
-            <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
-              <ShoppingCart className="w-6 h-6 text-black" />
-            </div>
-          </div>
-        </motion.div>
-  
-        {/* Ingresos del Mes */}
-        <motion.div 
-          whileHover={{ scale: 1.03 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Ingresos del Mes</p>
-              <p className="text-2xl font-bold text-white">${ingresosMes.toLocaleString()}</p>
-              <p className="text-yellow-400 text-sm font-medium">Mes actual</p>
-            </div>
-            <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
-              <DollarSign className="w-6 h-6 text-black" />
-            </div>
-          </div>
-        </motion.div>
-  
-        {/* Usuarios Activos */}
-        <motion.div 
-          whileHover={{ scale: 1.03 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Usuarios Activos</p>
-              <p className="text-2xl font-bold text-white">{usuariosActivos}</p>
-              <p className="text-yellow-400 text-sm font-medium">+15.3% vs mes anterior</p>
-            </div>
-            <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl">
-              <Users className="w-6 h-6 text-black" />
-            </div>
-          </div>
-        </motion.div>
-      </div>
-  
-      {/* Charts Section (2x2 Grid) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tendencia de Ventas */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
-        >
-          <h3 className="text-lg font-semibold text-white mb-6">📈 Tendencia de Ventas</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={salesData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#111827',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="ventas"
-                stroke="#f59e0b"
-                fill="#f59e0b"
-                fillOpacity={0.2}
-                strokeWidth={3}
-                isAnimationActive={true}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </motion.div>
-  
-        {/* Productos Más Vendidos */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
-        >
-          <h3 className="text-lg font-semibold text-white mb-6">🥇 Productos Más Vendidos</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={productData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={5}
-                dataKey="value"
-                isAnimationActive={true}
-              >
-                {productData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#111827',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </motion.div>
-  
-        {/* Pedidos por Día */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
-        >
-          <h3 className="text-lg font-semibold text-white mb-6">📊 Pedidos por Día</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={pedidosPorDia}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="dia" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
-                  borderRadius: "8px",
-                  color: "#fff"
-                }}
-              />
-              <Bar 
-                dataKey="cantidad" 
-                fill="url(#colorPedidos)" 
-                radius={[6, 6, 0, 0]} 
-                isAnimationActive={true}
-              />
-              <defs>
-                <linearGradient id="colorPedidos" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
-                  <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.6}/>
-                </linearGradient>
-              </defs>
-            </BarChart>
-          </ResponsiveContainer>
-        </motion.div>
-  
-        {/* Horas Pico */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2 }}
-          className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-2xl shadow-lg"
-        >
-          <h3 className="text-lg font-semibold text-white mb-6">🕒 Horas Pico</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={horasPico}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="hora" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
-                  borderRadius: "8px",
-                  color: "#fff"
-                }}
-              />
-              <Bar 
-                dataKey="cantidad" 
-                fill="url(#colorHoras)" 
-                radius={[6, 6, 0, 0]} 
-                isAnimationActive={true}
-              />
-              <defs>
-                <linearGradient id="colorHoras" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.6}/>
-                </linearGradient>
-              </defs>
-            </BarChart>
-          </ResponsiveContainer>
-        </motion.div>
-      </div>
-    </div>
-  );
-
-  const OrdersContent = () => (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Gestión de Pedidos</h3>
-          <div className="flex space-x-3">
-            <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
-              <option>Todos los estados</option>
-              <option>Pendiente</option>
-              <option>Preparando</option>
-              <option>Entregado</option>
-              <option>Cancelado</option>
-            </select>
-          </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 font-medium text-gray-300">ID</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Cliente</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Productos</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Total</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Hora</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map(order => (
-                <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                  <td className="py-3 px-4 font-medium text-white">#{order.id}</td>
-                  <td className="py-3 px-4 text-gray-300">{order.customer}</td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">{order.items}</td>
-                  <td className="py-3 px-4 font-medium text-yellow-400">
-                    ${order.total.toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4 text-gray-300">{order.status}</td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">{order.time}</td>
-                  <td className="py-3 px-4">
-                  <div className="flex space-x-2">
-                      {/* Ver */}
-                      <button
-                        onClick={() => openViewModal(order)}
-                        className="text-yellow-400 hover:text-yellow-300"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-
-                      {/* Editar */}
-                      <button
-                        onClick={() => openEditModal(order)}
-                        className="text-blue-400 hover:text-blue-300"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-
-                      {/* Eliminar */}
-                      <button
-                        onClick={() => openDeleteModal(order)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-  
-
-  const InventoryContent = () => (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-       <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Inventario General</h3>
-          <button
-            onClick={() => {
-              setSelectedProduct(null); // modo creación
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-xl font-medium shadow hover:shadow-lg transition"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar Producto
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Producto</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Stock</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Mínimo</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Unidad</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Precio</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {productos.map(producto => (
-                <tr key={producto._id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                  <td className="py-3 px-4 font-medium text-white">{producto.title}</td>
-                  <td className="py-3 px-4 text-gray-300">{producto.stock}</td>
-                  <td className="py-3 px-4 text-gray-300">{producto.minimo}</td>
-                  <td className="py-3 px-4 text-gray-300">{producto.unidad}</td>
-                  <td className="py-3 px-4 text-yellow-400">
-                    ${parsePrice(producto.price).toLocaleString()}
-                  </td>
-
-                  {/* Estado del producto: Activo/Inactivo */}
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      producto.estado
-                        ? 'bg-green-600 text-white'
-                        : 'bg-red-600 text-white'
-                    }`}>
-                      {producto.estado ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={() => {
-                        console.log('abriendo modal', producto);
-                        setSelectedProduct(producto);
-                        setIsModalOpen(true);
-                      }}
-                      className="text-yellow-400 hover:text-yellow-300 text-sm font-medium"
-                    >
-                      Reabastecer
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-
-  const UsersContent = () => (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Gestión de Usuarios</h3>
-        </div>
-  
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Nombre</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Rol</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Email</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Teléfono</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Último Login</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(user => (
-                <tr key={user._id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                  <td className="py-3 px-4 font-medium text-white">{user.name}</td>
-                  <td className="py-3 px-4 text-gray-300">{user.rol}</td>
-                  <td className="py-3 px-4 text-gray-300">{user.correo}</td>
-                  <td className="py-3 px-4 text-gray-300">{user.telefono || '—'}</td>
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(`http://localhost:5000/api/user/${user._id}/estado`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' }
-                          });
-                          const data = await res.json();
-                          if (res.ok) {
-                            setUsers(prev =>
-                              prev.map(u =>
-                                u._id === user._id ? { ...u, estado: !u.estado } : u
-                              )
-                            );
-                          } else {
-                            alert(data.message || 'Error al cambiar estado');
-                          }
-                        } catch (err) {
-                          alert('Error de conexión con el servidor');
-                          console.error(err);
-                        }
-                      }}
-                      className={`relative w-14 h-7 flex items-center rounded-full p-1 transition-colors duration-300 ${
-                        user.estado ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                    >
-                      <div
-                        className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
-                          user.estado ? 'translate-x-7' : 'translate-x-0'
-                        }`}
-                      ></div>
-                    </button>
-                  </td>
-                  <td className="py-3 px-4 text-gray-300 text-sm">
-                    {new Date(user.updatedAt).toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-4">
-                      <button
-                        onClick={() => handleDelete(user._id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-  
-  
-
-  const ContactsContent = () => (
-    <div className="space-y-6">
-    <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-white">Mensajes de Contacto</h3>
-        <select className="bg-black border border-gray-700 text-white px-3 py-2 rounded-lg">
-          <option>Todos</option>
-          <option>Pendientes</option>
-          <option>Resueltos</option>
-        </select>
-      </div>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-700">
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Nombre</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Email</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Teléfono</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Asunto</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Fecha</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contacts.map(contact => (
-              <tr key={contact._id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                <td className="py-3 px-4 font-medium text-white">{contact.name}</td>
-                <td className="py-3 px-4 text-gray-300">{contact.correo}</td>
-                <td className="py-3 px-4 text-gray-300">{contact.telefono}</td>
-                <td className="py-3 px-4 text-gray-300">{contact.asunto}</td>
-                <td className="py-3 px-4 text-gray-300 text-sm">{formatFecha(contact.fecha)}</td>
-                <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    contact.estado === 'Resuelto' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {contact.estado}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex space-x-2">
-                  <button 
-                      onClick={() => openViewContactModal(contact)}
-                      className="text-yellow-400 hover:text-yellow-300"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button className="text-green-400 hover:text-green-300">
-                      <CheckCircle className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-);
-
-
-const ReportsContent = () => (
-<div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-    <h3 className="text-lg font-semibold text-white mb-6">Reporte General</h3>
-    {reportStats ? (
-      <div className="space-y-4 text-white">
-        <p>Total Ventas: ${reportStats.totalVentas.toLocaleString()}</p>
-        <p>Total Pedidos: {reportStats.totalPedidos}</p>
-        <p>Total Usuarios: {reportStats.totalUsuarios}</p>
-        <button
-          onClick={handleDownloadPDF}
-          className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-lg font-semibold"
-        >
-          Descargar Reporte PDF
-        </button>
-      </div>
-    ) : (
-      <p className="text-gray-400">Cargando datos...</p>
-    )}
-  </div>
-);
-
-const renderContent = () => {
-switch(activeSection) {
-case 'dashboard': return <DashboardContent />;
-case 'orders': return <OrdersContent />;
-case 'inventory': return <InventoryContent />;
-case 'users': return <UsersContent />;
-case 'contacts': return <ContactsContent />;
-case 'reports': return <ReportsContent />;
-default: return <DashboardContent />;
-}
-};
-
-return (
-<div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-{/* Header */}
-<header className="bg-gradient-to-r from-gray-900 to-black border-b border-gray-800 shadow-2xl">
-<div className="flex items-center justify-between px-6 py-4">
-<div className="flex items-center space-x-4">
-<div className="flex items-center space-x-3">
-<div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center">
-<span className="text-black font-bold text-xl">V</span>
-</div>
-<div>
-<h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
-VANDALO
-</h1>
-<p className="text-gray-400 text-sm">Sistema Administrativo</p>
-</div>
-</div>
-</div>
-
-<div className="flex items-center space-x-4">
-<div className="relative">
-<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-<input 
-type="text" 
-placeholder="Buscar..." 
-className="bg-black border border-gray-700 rounded-xl pl-10 pr-4 py-2 text-white focus:border-yellow-400 focus:outline-none transition-colors"
-/>
-</div>
-
-<button className="relative p-2 text-gray-400 hover:text-yellow-400 transition-colors">
-<Bell className="w-5 h-5" />
-{notifications > 0 && (
-<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-{notifications}
-</span>
-)}
-</button>
-
-<button
-  onClick={handleLogout}
-  title="Cerrar sesión"
-  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
->
-  <Settings className="w-5 h-5" />
-</button>
-
-
-<div className="flex items-center space-x-2">
-<div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
-<User className="w-4 h-4 text-black" />
-</div>
-<span className="text-white font-medium">Admin</span>
-</div>
-</div>
-</div>
-</header>
-
-<div className="flex">
-{/* Sidebar */}
-<aside className="w-64 bg-gradient-to-b from-gray-900 to-black border-r border-gray-800 min-h-screen">
-<nav className="p-4">
-<ul className="space-y-2">
-{menuItems.map((item) => (
-<li key={item.id}>
-<button
-onClick={() => setActiveSection(item.id)}
-className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-  activeSection === item.id
-    ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-medium shadow-lg'
-    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-}`}
->
-<item.icon className="w-5 h-5" />
-<span>{item.label}</span>
-</button>
-</li>
-))}
-</ul>
-</nav>
-</aside>
-{/* Main Content */}
-<main className="flex-1 p-6">
-  <div className="mb-6">
-    <h2 className="text-3xl font-bold text-white mb-2">
-      {menuItems.find(item => item.id === activeSection)?.label}
-    </h2>
-    <p className="text-gray-400">
-      {activeSection === 'dashboard' && 'Resumen general del sistema'}
-      {activeSection === 'orders' && 'Gestiona todos los pedidos del restaurante'}
-      {activeSection === 'inventory' && 'Control de inventario y stock'}
-      {activeSection === 'users' && 'Administra usuarios del sistema'}
-      {activeSection === 'contacts' && 'Mensajes y consultas de clientes'}
-      {activeSection === 'reports' && 'Reportes y análisis de datos'}
-    </p>
-  </div>
-
-  {renderContent()}
-</main>
-
-{/* Modal de edición/agregado de productos */}
-<ProductUpdateModal
-  isOpen={isModalOpen}
-  onClose={() => setIsModalOpen(false)}
-  product={selectedProduct}
-  onUpdate={(updated) => {
+  // Product modal update callback (mantiene comportamiento original)
+  const handleProductUpdated = (updated) => {
     setProductos((prev) => {
       const index = prev.findIndex((p) => p._id === updated._id);
       if (index !== -1) {
@@ -1023,192 +342,220 @@ className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-a
         copia[index] = updated;
         return copia;
       } else {
-        return [...prev, updated];
+        return [updated, ...prev];
       }
     });
     setSelectedProduct(null);
-  }}
-/>
-{/* Modal Ver Pedido */}
-{isViewModalOpen && selectedOrder && (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-    <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.8, opacity: 0 }}
-      className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[28rem]"
-    >
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Eye className="w-5 h-5 text-yellow-400" />
-          Detalles del Pedido
-        </h2>
-        <button onClick={() => setIsViewModalOpen(false)}>
-          <X className="w-6 h-6 text-gray-400 hover:text-white" />
-        </button>
-      </div>
+  };
 
-      <div className="space-y-2 text-gray-300">
-        <p><span className="font-semibold">ID:</span> #{selectedOrder.id}</p>
-        <p><span className="font-semibold">Cliente:</span> {selectedOrder.customer}</p>
-        <p><span className="font-semibold">Productos:</span> {selectedOrder.items}</p>
-        <p><span className="font-semibold">Total:</span> ${selectedOrder.total.toLocaleString()}</p>
-        <p><span className="font-semibold">Estado:</span> {selectedOrder.status}</p>
-        <p><span className="font-semibold">Fecha:</span> {selectedOrder.time}</p>
-        {selectedOrder.orderDescription && (
-          <p><span className="font-semibold">Descripción:</span> {selectedOrder.orderDescription}</p>
-        )}
-      </div>
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "orders", label: "Pedidos", icon: ClipboardList },
+    { id: "inventory", label: "Inventario", icon: Package },
+    { id: "users", label: "Usuarios", icon: Users },
+    { id: "contacts", label: "Contactos", icon: Mail },
+    { id: "reports", label: "Reportes", icon: BarChart },
+  ];
 
-      <div className="flex justify-end mt-6">
-        <button
-          onClick={() => setIsViewModalOpen(false)}
-          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black font-semibold shadow-md"
-        >
-          Cerrar
-        </button>
-      </div>
-    </motion.div>
-  </div>
-)}
-
-{/* Modal Editar Pedido */}
-{isEditModalOpen && selectedOrder && (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-    <motion.div
-      initial={{ y: -50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: -50, opacity: 0 }}
-      className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[30rem]"
-    >
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Edit className="w-5 h-5 text-yellow-400" />
-          Editar Pedido
-        </h2>
-        <button onClick={() => setIsEditModalOpen(false)}>
-          <X className="w-6 h-6 text-gray-400 hover:text-white" />
-        </button>
-      </div>
-
-      <div className="mb-4 space-y-2 text-gray-300">
-        <p><span className="font-semibold">Cliente:</span> {selectedOrder.customer}</p>
-        <p><span className="font-semibold">Productos:</span> {selectedOrder.items}</p>
-        <p><span className="font-semibold">Total:</span> ${selectedOrder.total.toLocaleString()}</p>
-        <p><span className="font-semibold">Fecha:</span> {selectedOrder.time}</p>
-      </div>
-
-      <label className="block text-gray-300 mb-2">Estado</label>
-      <select
-        value={newStatus}
-        onChange={(e) => setNewStatus(e.target.value)}
-        className="w-full mb-4 px-3 py-2 rounded-lg bg-black border border-gray-700 text-white focus:ring-2 focus:ring-yellow-500"
+  // ----------------------------
+  // RENDER
+  // ----------------------------
+  return (
+    <div className="flex h-screen bg-black text-white">
+      {/* Sidebar Mejorado */}
+      <motion.div 
+        className="w-72 bg-gradient-to-br from-gray-950 via-gray-900 to-black border-r border-gray-800/50 flex flex-col shadow-2xl"
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
       >
-        <option value="pendiente">Pendiente</option>
-        <option value="preparando">Preparando</option>
-        <option value="entregado">Entregado</option>
-        <option value="cancelado">Cancelado</option>
-      </select>
+        {/* Logo Section */}
+        <div className="p-6 border-b border-gray-800/50">
+          <motion.div 
+            className="flex items-center gap-3"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/20">
+              <span className="text-black font-black text-xl">VG</span>
+            </div>
+            <div>
+              <h1 className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200 tracking-tight">
+                EL VANDALO GRILL
+              </h1>
+              <p className="text-xs text-gray-500 font-medium">Admin Panel</p>
+            </div>
+          </motion.div>
+        </div>
 
-      <label className="block text-gray-300 mb-2">Descripción</label>
-      <textarea
-        value={newDescription}
-        onChange={(e) => setNewDescription(e.target.value)}
-        className="w-full mb-4 px-3 py-2 rounded-lg bg-black border border-gray-700 text-white focus:ring-2 focus:ring-yellow-500"
-      />
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-3">
+            Menú Principal
+          </div>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`w-full group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 text-yellow-400 shadow-lg shadow-yellow-500/10"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800/50"
+                }`}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {/* Active indicator */}
+                {isActive && (
+                  <motion.div
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-r-full"
+                    layoutId="activeIndicator"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+                
+                <div className={`p-2 rounded-lg transition-colors ${
+                  isActive 
+                    ? "bg-yellow-500/20" 
+                    : "bg-gray-800/50 group-hover:bg-gray-700/50"
+                }`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                
+                <span className="font-medium flex-1 text-left">{item.label}</span>
+                
+                <ChevronRight className={`w-4 h-4 transition-all ${
+                  isActive ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0"
+                }`} />
+              </motion.button>
+            );
+          })}
+        </nav>
 
-      <div className="flex justify-end space-x-3">
-        <button
-          onClick={() => setIsEditModalOpen(false)}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white shadow-md"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleUpdateOrder}
-          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black font-semibold shadow-md"
-        >
-          Guardar
-        </button>
-      </div>
-    </motion.div>
-  </div>
-)}
+        {/* User Profile Section */}
+        <div className="p-4 border-t border-gray-800/50">
+          <motion.div 
+            className="flex items-center gap-3 p-3 rounded-xl bg-gray-800/30 hover:bg-gray-800/50 transition-colors cursor-pointer group"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
+              <User className="w-5 h-5 text-black" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate">Administrador</p>
+            </div>
+            <motion.button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors"
+              whileHover={{ rotate: 15 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <LogOut className="w-4 h-4" />
+            </motion.button>
+          </motion.div>
+        </div>
+      </motion.div>
 
-{/* Modal Confirmar Eliminación */}
-{isDeleteModalOpen && selectedOrder && (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-    <motion.div
-      initial={{ y: 50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 50, opacity: 0 }}
-      className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[24rem] text-center"
-    >
-      <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-3" />
-      <h2 className="text-xl font-bold text-white mb-2">Eliminar Pedido</h2>
-      <p className="text-gray-300 mb-6">
-        ¿Seguro que quieres eliminar el pedido{" "}
-        <span className="text-yellow-400 font-semibold">#{selectedOrder.id}</span>?
-      </p>
-      <div className="flex justify-center space-x-3">
-        <button
-          onClick={() => setIsDeleteModalOpen(false)}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white shadow-md"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleConfirmDelete}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold shadow-md"
-        >
-          Eliminar
-        </button>
-      </div>
-    </motion.div>
-  </div>
-)}
-{/* Modal Ver Contacto */}
-{isViewContactModalOpen && selectedContact && (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-[28rem]">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Eye className="w-5 h-5 text-yellow-400" />
-          Detalles del Contacto
-        </h2>
-        <button onClick={() => setIsViewContactModalOpen(false)}>
-          <X className="w-6 h-6 text-gray-400 hover:text-white" />
-        </button>
-      </div>
+      {/* Main Content */}
+      <motion.main 
+        className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-950 via-black to-gray-900"
+        key={activeSection}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Top Bar */}
+        <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-xl border-b border-gray-800/50 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                {menuItems.find(item => item.id === activeSection)?.label}
+              </h2>
+              <p className="text-sm text-gray-500">Gestiona tu negocio desde aquí</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <motion.button 
+                className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors relative"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full"></span>
+              </motion.button>
+              <motion.button 
+                className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Settings className="w-5 h-5" />
+              </motion.button>
+            </div>
+          </div>
+        </div>
 
-      {/* Info */}
-      <div className="space-y-2 text-gray-300">
-        <p><span className="font-semibold">Nombre:</span> {selectedContact.name}</p>
-        <p><span className="font-semibold">Correo:</span> {selectedContact.correo}</p>
-        <p><span className="font-semibold">Teléfono:</span> {selectedContact.telefono || '—'}</p>
-        <p><span className="font-semibold">Asunto:</span> {selectedContact.asunto}</p>
-        <p><span className="font-semibold">Mensaje:</span> {selectedContact.mensaje}</p>
-        <p><span className="font-semibold">Fecha:</span> {formatFecha(selectedContact.fecha)}</p>
-        <p><span className="font-semibold">Estado:</span> {selectedContact.estado}</p>
-      </div>
+        {/* Content Area */}
+        <div className="p-8">
+          {activeSection === "dashboard" && (
+            <DashboardContent
+              ventasHoy={ventasHoy}
+              pedidosHoy={pedidosHoy}
+              usuariosActivos={usuariosActivos}
+              ingresosMes={ingresosMes}
+              salesData={salesData}
+              productData={productData}
+              pedidosPorDia={pedidosPorDia}
+              horasPico={horasPico}
+            />
+          )}
 
-      {/* Footer */}
-      <div className="flex justify-end mt-6">
-        <button
-          onClick={() => setIsViewContactModalOpen(false)}
-          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black font-semibold shadow-md"
-        >
-          Cerrar
-        </button>
-      </div>
+          {activeSection === "orders" && (
+            <OrdersContent orders={orders} openViewModal={openViewModal} openEditModal={openEditModal} openDeleteModal={openDeleteModal} />
+          )}
+
+          {activeSection === "inventory" && (
+            <InventoryContent productos={productos} setSelectedProduct={setSelectedProduct} setIsModalOpen={setIsProductModalOpen} parsePrice={parsePrice} />
+          )}
+
+          {activeSection === "users" && (
+            <UsersContent users={users} setUsers={setUsers} handleDelete={handleDeleteUser} />
+          )}
+
+          {activeSection === "contacts" && (
+            <ContactsContent contacts={contacts} openViewContactModal={(c) => { setSelectedContact(c); setIsViewContactModalOpen(true); }} formatFecha={formatFecha} />
+          )}
+
+          {activeSection === "reports" && <ReportsContent reportStats={reportStats} handleDownloadPDF={async () => {
+            try {
+              const res = await fetch("http://localhost:5000/api/reportes/pdf");
+              if (!res.ok) throw new Error("Error generando PDF");
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.setAttribute("download", "Reportes.pdf");
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+            } catch (err) {
+              console.error(err);
+              alert("Error al generar PDF");
+            }
+          }} />}
+        </div>
+      </motion.main>
+
+      {/* Modales */}
+      <ProductUpdateModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} product={selectedProduct} onUpdate={handleProductUpdated} /> 
+      <OrderViewModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} order={selectedOrder} />
+      <OrderEditModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} order={selectedOrder} newStatus={newStatus} newDescription={newDescription} setNewStatus={setNewStatus} setNewDescription={setNewDescription} handleUpdateOrder={handleUpdateOrder} />
+      <OrderDeleteModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} order={selectedOrder} handleConfirmDelete={handleConfirmDelete} />
+      <ContactViewModal isOpen={isViewContactModalOpen} onClose={() => setIsViewContactModalOpen(false)} contact={selectedContact} />
     </div>
-  </div>
-)}
-
-</div>
-</div>
-);
+  );
 };
 
 export default Dashboard;
