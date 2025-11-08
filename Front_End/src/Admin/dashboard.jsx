@@ -1,4 +1,3 @@
-// admin/dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { LayoutDashboard, ClipboardList, Package, Users, Mail, BarChart, Settings, User, Search, Bell, LogOut, ChevronRight } from "lucide-react";
@@ -22,26 +21,21 @@ const Dashboard = () => {
 
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarHovered, setSidebarHovered] = useState(false);
-
   // KPI / gráficas
   const [ventasHoy, setVentasHoy] = useState(0);
   const [pedidosHoy, setPedidosHoy] = useState(0);
   const [usuariosActivos, setUsuariosActivos] = useState(0);
   const [ingresosMes, setIngresosMes] = useState(0);
-
   const [salesData, setSalesData] = useState([]);
   const [productData, setProductData] = useState([]);
   const [pedidosPorDia, setPedidosPorDia] = useState([]);
   const [horasPico, setHorasPico] = useState([]);
-
   // Inventario
   const [productos, setProductos] = useState([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
   // Usuarios
   const [users, setUsers] = useState([]);
-
   // Pedidos
   const [orders, setOrders] = useState([]);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -50,16 +44,18 @@ const Dashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [newStatus, setNewStatus] = useState("");
   const [newDescription, setNewDescription] = useState("");
-
   // Contactos
   const [contacts, setContacts] = useState([]);
   const [isViewContactModalOpen, setIsViewContactModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
   const [isLoadingContacts, setIsLoadingContacts] = useState(true);
   const [contactsError, setContactsError] = useState(null);
-
   // Reportes
   const [reportStats, setReportStats] = useState(null);
+  // Notificaciones (bajo stock)
+  const [bajoStock, setBajoStock] = useState([]);
+  const [isBajoStockOpen, setIsBajoStockOpen] = useState(false);
+
 
   // ----------------------------
   // HELPERS
@@ -78,11 +74,52 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/LR");
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      // Llamar al endpoint de logout si existe
+      if (token) {
+        await fetch("http://localhost:5000/api/auth/logout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        }).catch(err => console.log("Error al cerrar sesión en el servidor:", err));
+      }
+    } catch (error) {
+      console.error("Error durante el logout:", error);
+    } finally {
+      // Limpiar todo el localStorage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userInfo");
+      
+      // Limpiar sessionStorage también por seguridad
+      sessionStorage.clear();
+      
+      // Redirigir al login
+      navigate("/");
+    }
   };
+
+  const fetchBajoStock = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/stats/bajo-stock");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setBajoStock(data);
+      } else {
+        setBajoStock([]);
+      }
+    } catch (err) {
+      console.error("Error al obtener productos con bajo stock:", err);
+      setBajoStock([]);
+    }
+  };
+  
 
   // ----------------------------
   // FETCH: Estadísticas (usamos las mismas rutas del archivo original)
@@ -453,6 +490,7 @@ const Dashboard = () => {
               className="p-2 rounded-lg hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors"
               whileHover={{ rotate: 15 }}
               whileTap={{ scale: 0.9 }}
+              title="Cerrar sesión"
             >
               <LogOut className="w-4 h-4" />
             </motion.button>
@@ -478,13 +516,19 @@ const Dashboard = () => {
               <p className="text-sm text-gray-500">Gestiona tu negocio desde aquí</p>
             </div>
             <div className="flex items-center gap-3">
-              <motion.button 
+            <motion.button 
+                onClick={async () => {
+                  await fetchBajoStock();
+                  setIsBajoStockOpen(true);
+                }}
                 className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors relative"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full"></span>
+                {bajoStock.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full"></span>
+                )}
               </motion.button>
               <motion.button 
                 className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
@@ -527,7 +571,37 @@ const Dashboard = () => {
           {activeSection === "contacts" && (
             <ContactsContent contacts={contacts} openViewContactModal={(c) => { setSelectedContact(c); setIsViewContactModalOpen(true); }} formatFecha={formatFecha} />
           )}
+          {isBajoStockOpen && (
+              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="bg-gray-900 text-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative">
+                  <button 
+                    onClick={() => setIsBajoStockOpen(false)} 
+                    className="absolute top-3 right-3 text-gray-400 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-yellow-500" /> Productos con Bajo Stock
+                  </h3>
 
+                  {bajoStock.length === 0 ? (
+                    <p className="text-gray-400 text-sm">No hay productos con bajo stock 🎉</p>
+                  ) : (
+                    <ul className="divide-y divide-gray-800 max-h-64 overflow-y-auto">
+                      {bajoStock.map((p) => (
+                        <li key={p._id} className="py-2 flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{p.title}</p>
+                            <p className="text-sm text-gray-500">Stock: {p.stock}</p>
+                          </div>
+                          <span className="text-yellow-500 font-semibold">⚠️</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
           {activeSection === "reports" && <ReportsContent reportStats={reportStats} handleDownloadPDF={async () => {
             try {
               const res = await fetch("http://localhost:5000/api/reportes/pdf");

@@ -8,7 +8,7 @@ const ProductUpdateModal = ({ isOpen, onClose, product, onUpdate }) => {
     price: '',
     image: '',
     category: '',
-    popular: false,
+    especial: false,
     new: false,
     stock: 0,
     minimo: 0,
@@ -31,7 +31,7 @@ const ProductUpdateModal = ({ isOpen, onClose, product, onUpdate }) => {
           price: product.price || '',
           image: product.image || '',
           category: product.category || '',
-          popular: product.popular || false,
+          especial: product.especial || false,
           new: product.new || false,
           stock: product.stock || 0,
           minimo: product.minimo || 0,
@@ -46,7 +46,7 @@ const ProductUpdateModal = ({ isOpen, onClose, product, onUpdate }) => {
           price: '',
           image: '',
           category: '',
-          popular: false,
+          especial: false,
           new: false,
           stock: 0,
           minimo: 0,
@@ -252,11 +252,11 @@ const ProductUpdateModal = ({ isOpen, onClose, product, onUpdate }) => {
               <label className="text-white flex items-center gap-2">
                 <input
                   type="checkbox"
-                  name="popular"
-                  checked={formData.popular}
+                  name="especial"
+                  checked={formData.especial}
                   onChange={handleInputChange}
                 />
-                Popular
+                Especial del dia 
               </label>
               <label className="text-white flex items-center gap-2">
                 <input

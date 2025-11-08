@@ -63,12 +63,12 @@ const MenuPage = () => {
       filtered = { [selectedCategory]: menuData[selectedCategory] || [] };
     }
 
-    // Aplicar filtros especiales (popular, nuevo)
+    // Aplicar filtros especiales (especial, nuevo)
     if (selectedFilters.length > 0) {
       Object.keys(filtered).forEach(category => {
         filtered[category] = filtered[category].filter(item => {
           return selectedFilters.every(filter => {
-            if (filter === 'popular') return item.popular;
+            if (filter === 'especial') return item.especial;
             if (filter === 'nuevo') return item.new;
             return true;
           });
@@ -257,15 +257,15 @@ const MenuPage = () => {
                   </h3>
                   <div className="flex flex-wrap gap-3">
                     <button
-                      onClick={() => toggleFilter('popular')}
+                      onClick={() => toggleFilter('especial')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                        selectedFilters.includes('popular')
+                        selectedFilters.includes('especial')
                           ? 'bg-yellow-400 text-black'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700'
                       }`}
                     >
                       <TrendingUp className="w-4 h-4" />
-                      Popular
+                      especial
                     </button>
                     <button
                       onClick={() => toggleFilter('nuevo')}
@@ -342,8 +342,8 @@ const MenuPage = () => {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                           <div className="absolute top-2 left-2 flex gap-1">
-                            {item.popular && (
-                              <span className="bg-yellow-400 text-black px-2 py-0.5 rounded-full text-xs font-semibold">Popular</span>
+                            {item.especial && (
+                              <span className="bg-yellow-400 text-black px-2 py-0.5 rounded-full text-xs font-semibold">Especial del dia</span>
                             )}
                             {item.new && (
                               <span className="bg-green-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">Nuevo</span>

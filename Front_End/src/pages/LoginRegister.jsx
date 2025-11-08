@@ -123,6 +123,117 @@ const PasswordStrength = ({ password }) => {
   );
 };
 
+// Componente Modal para Términos y Condiciones
+const TermsModal = ({ isOpen, onClose, type }) => {
+  if (!isOpen) return null;
+
+  const content = {
+    terms: {
+      title: 'Términos y Condiciones',
+      sections: [
+        {
+          title: '1. Aceptación de términos',
+          content: 'Al acceder y usar este servicio, aceptas estar sujeto a estos términos y condiciones de uso. Si no estás de acuerdo con alguno de estos términos, no debes utilizar nuestro servicio.'
+        },
+        {
+          title: '2. Uso del servicio',
+          content: 'Te comprometes a usar el servicio de manera responsable y conforme a la ley. No debes utilizar el servicio para actividades ilegales, fraudulentas o que puedan dañar a terceros.'
+        },
+        {
+          title: '3. Cuenta de usuario',
+          content: 'Eres responsable de mantener la confidencialidad de tu cuenta y contraseña. Debes notificarnos inmediatamente si sospechas de un uso no autorizado de tu cuenta.'
+        },
+        {
+          title: '4. Privacidad',
+          content: 'Nos comprometemos a proteger tu información personal según nuestra política de privacidad. Recopilamos y procesamos datos de acuerdo con las leyes aplicables de protección de datos.'
+        },
+        {
+          title: '5. Propiedad intelectual',
+          content: 'Todo el contenido, marcas y materiales del servicio son propiedad nuestra o de nuestros licenciantes y están protegidos por las leyes de propiedad intelectual.'
+        },
+        {
+          title: '6. Modificaciones',
+          content: 'Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones entrarán en vigor inmediatamente después de su publicación en el sitio.'
+        }
+      ]
+    },
+    privacy: {
+      title: 'Política de Privacidad',
+      sections: [
+        {
+          title: '1. Recopilación de datos',
+          content: 'Recopilamos información necesaria para brindarte nuestros servicios, incluyendo nombre, correo electrónico y datos de uso de la plataforma.'
+        },
+        {
+          title: '2. Uso de la información',
+          content: 'Utilizamos tu información para mejorar tu experiencia, comunicarnos contigo, procesar transacciones y cumplir con obligaciones legales.'
+        },
+        {
+          title: '3. Protección de datos',
+          content: 'Implementamos medidas de seguridad técnicas y organizativas para proteger tu información contra acceso no autorizado, pérdida o alteración.'
+        },
+        {
+          title: '4. Cookies',
+          content: 'Utilizamos cookies y tecnologías similares para mejorar la funcionalidad del sitio, analizar el uso y personalizar tu experiencia.'
+        },
+        {
+          title: '5. Compartir información',
+          content: 'No vendemos tu información personal. Solo compartimos datos con terceros cuando es necesario para operar el servicio o cuando la ley lo requiere.'
+        },
+        {
+          title: '6. Tus derechos',
+          content: 'Tienes derecho a acceder, corregir, eliminar o limitar el uso de tus datos personales. Contáctanos para ejercer estos derechos.'
+        }
+      ]
+    }
+  };
+
+  const currentContent = content[type];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-black">{currentContent.title}</h2>
+          <button
+            onClick={onClose}
+            className="text-black hover:text-gray-800 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(80vh-180px)]">
+          <div className="space-y-6">
+            {currentContent.sections.map((section, index) => (
+              <div key={index}>
+                <h3 className="text-lg font-semibold text-yellow-400 mb-2">
+                  {section.title}
+                </h3>
+                <p className="text-gray-300 leading-relaxed">
+                  {section.content}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-800">
+          <button
+            onClick={onClose}
+            className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black py-3 px-6 rounded-xl font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105"
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const LoginRegister  = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
@@ -134,6 +245,7 @@ const LoginRegister  = () => {
   });
   const [alert, setAlert] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState({ terms: false, privacy: false });
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -219,17 +331,20 @@ const LoginRegister  = () => {
             login(data.user, data.token);
             showAlert('success', `¡Bienvenido ${data.user.name}!`);
         
-            // Redirigir según el rol
-            setTimeout(() => {
-              const rol = data.user.rol;
-              if (rol === 'administrador') {
-                navigate('/Admin');
-              } else if (rol === 'cliente') {
-                navigate('/');
-              } else {
-                showAlert('warning', 'Rol no definido');
-              }
-            }, 1500);
+           // Redirigir según el rol
+              setTimeout(() => {
+                const rol = data.user.rol;
+
+                if (rol === 'administrador') {
+                  navigate('/Admin');
+                } else if (rol === 'empleado') {
+                  navigate('/empleados');
+                } else if (rol === 'cliente') {
+                  navigate('/');
+                } else {
+                  showAlert('warning', 'Rol no definido');
+                }
+              }, 1500);
           } else {
             showAlert('success', '¡Registro exitoso! Ahora puedes iniciar sesión.');
             setIsLogin(true);
@@ -323,6 +438,18 @@ const LoginRegister  = () => {
           onClose={closeAlert}
         />
       )}
+
+      {/* Modales */}
+      <TermsModal
+        isOpen={modalOpen.terms}
+        onClose={() => setModalOpen({ ...modalOpen, terms: false })}
+        type="terms"
+      />
+      <TermsModal
+        isOpen={modalOpen.privacy}
+        onClose={() => setModalOpen({ ...modalOpen, privacy: false })}
+        type="privacy"
+      />
 
       {/* Fondos y efectos */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
@@ -521,23 +648,21 @@ const LoginRegister  = () => {
                   />
                   <label htmlFor="terms" className="ml-2 text-sm text-gray-300">
                     Acepto los{' '}
-                    <a
-                      href="../docs/terminos.pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-yellow-400 hover:text-yellow-300"
+                    <button
+                      type="button"
+                      onClick={() => setModalOpen({ ...modalOpen, terms: true })}
+                      className="text-yellow-400 hover:text-yellow-300 underline"
                     >
                       Términos y Condiciones
-                    </a>{' '}
+                    </button>{' '}
                     y la{' '}
-                    <a
-                      href="/docs/privacidad.pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-yellow-400 hover:text-yellow-300"
+                    <button
+                      type="button"
+                      onClick={() => setModalOpen({ ...modalOpen, privacy: true })}
+                      className="text-yellow-400 hover:text-yellow-300 underline"
                     >
                       Política de Privacidad
-                    </a>
+                    </button>
                   </label>
                 </div>
               )}
@@ -558,37 +683,45 @@ const LoginRegister  = () => {
                     </span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center mt-8 text-gray-400 text-sm">
-            <p>
-              {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
-              >
-                {isLogin ? 'Regístrate aquí' : 'Inicia sesión aquí'}
-              </button>
-            </p>
-            <p className="mt-4">
-              Al continuar, aceptas nuestros{' '}
-              <a href="#" className="text-yellow-400 hover:text-yellow-300 transition-colors">
-                Términos de Servicio
-              </a>{' '}
-              y{' '}
-              <a href="#" className="text-yellow-400 hover:text-yellow-300 transition-colors">
-                Política de Privacidad
-              </a>
-            </p>
+                  )}
+                  </button>
+                </form>
+              </div>
+    
+              {/* Footer */}
+              <div className="text-center mt-8 text-gray-400 text-sm">
+                <p>
+                  {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
+                  <button
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
+                  >
+                    {isLogin ? 'Regístrate aquí' : 'Inicia sesión aquí'}
+                  </button>
+                </p>
+                <p className="mt-4">
+                  Al continuar, aceptas nuestros{' '}
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen({ ...modalOpen, terms: true })}
+                    className="text-yellow-400 hover:text-yellow-300 transition-colors underline"
+                  >
+                    Términos de Servicio
+                  </button>{' '}
+                  y{' '}
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen({ ...modalOpen, privacy: true })}
+                    className="text-yellow-400 hover:text-yellow-300 transition-colors underline"
+                  >
+                    Política de Privacidad
+                  </button>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-export default LoginRegister;
+      );
+    };
+    
+    export default LoginRegister;

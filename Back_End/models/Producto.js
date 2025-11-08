@@ -6,7 +6,7 @@ const productoSchema = new mongoose.Schema({
   price: String,
   image: String,
   category: String,//
-  popular: Boolean,
+  especial: Boolean,
   new: Boolean,
   stock: Number,//
   minimo: Number,//
