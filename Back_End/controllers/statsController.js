@@ -1,5 +1,6 @@
 import Order from '../models/Order.js';
 import User from '../models/User.js';
+import Producto from '../models/Producto.js';
 
 ////////////////////////////////////////////////////////////// TENDENCIAS DE VENTAS //////////////////////////////////////////////////////////////
 export const getTendenciaVentas = async (req, res) => {
@@ -186,4 +187,17 @@ export const getHorasPico = async (req, res) => {
       console.error("Error obteniendo horas pico:", error);
       res.status(500).json({ error: "Error al obtener horas pico" });
     }
+};
+
+////////////////////////////////////////////////////////////// PRODUCTOS CON BAJO STOCK  //////////////////////////////////////////////////////////////
+
+export const getBajoStock = async (req, res) => {
+  try {
+    const limite = parseInt(req.query.limite) || 10; 
+    const productos = await Producto.find({ stock: { $lt: limite } });
+    res.json(productos);
+  } catch (error) {
+    console.error("Error obteniendo productos con bajo stock:", error);
+    res.status(500).json({ error: "Error al obtener productos con bajo stock" });
+  }
 };

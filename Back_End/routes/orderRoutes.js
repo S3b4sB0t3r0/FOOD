@@ -4,7 +4,9 @@ import {
   getOrderUser, 
   getAllOrders, 
   updateOrder, 
-  deleteOrder 
+  deleteOrder,
+  getFrequentCustomers,
+  getCustomerStats
 } from '../controllers/orderController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 
@@ -15,5 +17,7 @@ router.get('/getorderuser', getOrderUser);
 router.get('/admin/all', getAllOrders);
 router.put('/:id', updateOrder);
 router.delete('/:id', deleteOrder);
+router.get('/frequent-customers', getFrequentCustomers);
+router.get('/customer-stats/:email', getCustomerStats);
 
 export default router;

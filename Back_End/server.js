@@ -11,6 +11,8 @@ import userRoutes from './routes/userRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import reportesRoutes from './routes/reportes.js';
+import movimientosRoutes from './routes/movimientos.js';
+import employeeRoutes from './routes/employeeRoutes.js';
 import connectDB from './config/db.js';
 
 dotenv.config();
@@ -33,6 +35,8 @@ app.use('/api', productoRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/reportes', reportesRoutes);
+app.use('/api/movimientos', movimientosRoutes);
+app.use('/api/employee', employeeRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {

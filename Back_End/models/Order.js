@@ -22,7 +22,7 @@ const OrderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pendiente', 'en preparación', 'enviado', 'entregado'],
+    enum: ['pendiente', 'preparando', 'enviado', 'entregado'],
     default: 'pendiente',
   },
   customerEmail: {
@@ -32,7 +32,7 @@ const OrderSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: false,
   },
   createdAt: {
     type: Date,

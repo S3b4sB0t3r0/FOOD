@@ -20,7 +20,9 @@ import LoginRegister  from './pages/LoginRegister';
 import PasswordReset from './pages/RestablecerContraseña';
 import PasswordChange from './pages/CambioContraseña';
 import ProfilePage from './pages/Cuenta';
-import FoodChainDashboard from './Administrador/dashboard';
+import FoodChainDashboard from './Admin/dashboard';
+import EmployeeDashboard from './Employee/dashboard';
+
 
 function App() {
   return (
@@ -42,6 +44,11 @@ function App() {
             <Route element={<RutaProtegida rolRequerido="administrador" />}>
               <Route path="/Admin" element={<FoodChainDashboard />} />
             </Route>
+
+            {/* Empleado */}
+            <Route element={<RutaProtegida rolRequerido="empleado" />}>
+              <Route path="/empleados" element={<EmployeeDashboard />} />
+            </Route> 
 
             {/* Rutas protegidas para clientes */}
             <Route element={<RutaProtegida />}>

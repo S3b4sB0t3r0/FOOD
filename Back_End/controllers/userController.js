@@ -37,8 +37,17 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: 'El correo ya está registrado' });
     }
 
+    // 🔹 Asignación de roles según dominio
     const domain = correo.split('@')[1];
-    const rol = domain === 'vandalo.com' ? 'administrador' : 'cliente';
+    let rol;
+
+    if (domain === 'vandalo.com') {
+      rol = 'administrador';
+    } else if (domain === 'elvandalo.com') {
+      rol = 'empleado';
+    } else {
+      rol = 'cliente';
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(contraseña, salt);
@@ -59,7 +68,6 @@ export const register = async (req, res) => {
     // Enviar correo de bienvenida
     await enviarCorreoRegistro(correo, name);
 
-    // ✅ Solo una respuesta
     res.status(201).json({ message: 'Usuario registrado correctamente' });
 
   } catch (error) {
@@ -67,6 +75,7 @@ export const register = async (req, res) => {
     res.status(500).json({ message: 'Error en el servidor' });
   }
 };
+
 
 ////////////////////////////////////////////////////////////// LOGIN //////////////////////////////////////////////////////////////
 export const login = async (req, res) => {
@@ -338,5 +347,139 @@ export const eliminarUsuario = async (req, res) => {
     res.status(200).json({ message: 'Usuario eliminado correctamente' });
   } catch (error) {
     res.status(500).json({ message: 'Error al eliminar el usuario' });
+  }
+};
+
+
+////////////////////////////////////////////////////////////// CARGA MASIVA DE USUARIOS //////////////////////////////////////////////////////////////
+export const cargaMasivaUsuarios = async (req, res) => {
+  try {
+    const { usuarios } = req.body;
+
+    // Validar que se envíe un array
+    if (!Array.isArray(usuarios) || usuarios.length === 0) {
+      return res.status(400).json({ 
+        message: 'Debe enviar un array de usuarios con al menos un elemento' 
+      });
+    }
+
+    const resultados = {
+      exitosos: [],
+      fallidos: []
+    };
+
+    const nameRegex = /^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
+    for (let i = 0; i < usuarios.length; i++) {
+      const userData = usuarios[i];
+      const { name, correo, contraseña, direccion, telefono, rol } = userData;
+
+      try {
+        // Validaciones básicas
+        if (!name || !correo || !contraseña) {
+          resultados.fallidos.push({
+            linea: i + 1,
+            correo: correo || 'Sin correo',
+            error: 'Nombre, correo y contraseña son obligatorios'
+          });
+          continue;
+        }
+
+        // Validar formato del nombre
+        if (!nameRegex.test(name)) {
+          resultados.fallidos.push({
+            linea: i + 1,
+            correo,
+            error: 'El nombre solo puede contener letras y espacios'
+          });
+          continue;
+        }
+
+        // Validar formato del correo
+        if (!emailRegex.test(correo)) {
+          resultados.fallidos.push({
+            linea: i + 1,
+            correo,
+            error: 'El correo electrónico no es válido'
+          });
+          continue;
+        }
+
+        // Validar formato de la contraseña
+        if (!passwordRegex.test(contraseña)) {
+          resultados.fallidos.push({
+            linea: i + 1,
+            correo,
+            error: 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo'
+          });
+          continue;
+        }
+
+        // Verificar si el correo ya existe
+        const existingUser = await User.findOne({ correo });
+        if (existingUser) {
+          resultados.fallidos.push({
+            linea: i + 1,
+            correo,
+            error: 'El correo ya está registrado'
+          });
+          continue;
+        }
+
+        // Determinar el rol
+        const domain = correo.split('@')[1];
+        const rolFinal = rol || (domain === 'vandalo.com' ? 'administrador' : 'cliente');
+
+        // Encriptar contraseña
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(contraseña, salt);
+
+        // Crear nuevo usuario
+        const newUser = new User({
+          name,
+          correo,
+          contraseña: hashedPassword,
+          estado: true,
+          direccion: direccion || null,
+          telefono: telefono || null,
+          rol: rolFinal,
+          token: null,
+          intentosFallidos: 0
+        });
+
+        await newUser.save();
+
+        // Enviar correo de bienvenida
+        await enviarCorreoRegistro(correo, name);
+
+        resultados.exitosos.push({
+          linea: i + 1,
+          correo,
+          nombre: name
+        });
+
+      } catch (error) {
+        resultados.fallidos.push({
+          linea: i + 1,
+          correo: correo || 'Sin correo',
+          error: error.message || 'Error al procesar el usuario'
+        });
+      }
+    }
+
+    // Respuesta final
+    res.status(200).json({
+      message: 'Carga masiva procesada',
+      total: usuarios.length,
+      exitosos: resultados.exitosos.length,
+      fallidos: resultados.fallidos.length,
+      detalles: resultados
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error en el servidor al procesar carga masiva' });
   }
 };
