@@ -103,7 +103,7 @@ const InventoryContent = ({
         {/* === HEADER === */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-white">Inventario General</h3>
+            <h3 className="text-lg font-semibold text-white">Menu General</h3>
             <p className="text-sm text-gray-400 mt-1">
               {filteredProducts.length} de {productos.length} productos
             </p>

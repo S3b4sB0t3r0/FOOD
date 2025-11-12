@@ -121,6 +121,7 @@ export const getAllOrders = async (req, res) => {
       id: order._id,
       customer: order.customerEmail,
       items: order.items.map(item => `${item.title} x${item.quantity}`).join(', '),
+      rawItems: order.items, // 🔥 ESTA LÍNEA ES CRÍTICA
       total: order.totalPrice,
       status: order.status,
       time: new Date(order.createdAt).toLocaleString('es-ES', {
@@ -130,6 +131,7 @@ export const getAllOrders = async (req, res) => {
         month: '2-digit',
         year: 'numeric',
       }),
+      orderDescription: order.orderDescription, // 🔥 Y ESTA
     }));
 
     res.status(200).json({ orders: formattedOrders });
@@ -212,27 +214,31 @@ export const deleteOrder = async (req, res) => {
 //////////////////////////////////////////////////////////////// OBTENER CLIENTES MÁS FRECUENTES //////////////////////////////////////////////////////////////
 export const getFrequentCustomers = async (req, res) => {
   try {
-    const { limit = 10 } = req.query;
+    // Solo mostramos los 3 primeros clientes
+    const limit = 3;
 
-    // Agregación para contar pedidos por cliente
     const frequentCustomers = await Order.aggregate([
       {
         // Agrupar por email del cliente
         $group: {
           _id: '$customerEmail',
-          totalOrders: { $sum: 1 }, // Contar número de pedidos
-          totalSpent: { $sum: '$totalPrice' }, // Suma total gastado
-          lastOrder: { $max: '$createdAt' }, // Fecha del último pedido
-          orders: { $push: '$_id' } // Array con IDs de todas las órdenes
+          totalOrders: { $sum: 1 },
+          totalSpent: { $sum: '$totalPrice' },
+          lastOrder: { $max: '$createdAt' },
+          orders: { $push: '$_id' }
         }
+      },
+      {
+        // Filtrar solo clientes con más de 5 pedidos
+        $match: { totalOrders: { $gt: 5 } }
       },
       {
         // Ordenar por número de pedidos (descendente)
         $sort: { totalOrders: -1 }
       },
       {
-        // Limitar resultados
-        $limit: parseInt(limit)
+        // Limitar a los 3 primeros
+        $limit: limit
       },
       {
         // Formatear la salida
@@ -257,24 +263,25 @@ export const getFrequentCustomers = async (req, res) => {
     ]);
 
     if (frequentCustomers.length === 0) {
-      return res.status(404).json({ 
-        message: 'No se encontraron clientes.' 
+      return res.status(404).json({
+        message: 'No se encontraron clientes con más de 5 pedidos.'
       });
     }
 
     res.status(200).json({
-      message: 'Clientes frecuentes obtenidos correctamente.',
+      message: 'Top 3 clientes frecuentes obtenidos correctamente.',
       total: frequentCustomers.length,
       customers: frequentCustomers
     });
 
   } catch (error) {
     console.error('❌ Error al obtener clientes frecuentes:', error);
-    res.status(500).json({ 
-      message: 'Error al obtener los clientes frecuentes.' 
+    res.status(500).json({
+      message: 'Error al obtener los clientes frecuentes.'
     });
   }
 };
+
 
 //////////////////////////////////////////////////////////////// OBTENER ESTADÍSTICAS DETALLADAS DE UN CLIENTE //////////////////////////////////////////////////////////////
 export const getCustomerStats = async (req, res) => {

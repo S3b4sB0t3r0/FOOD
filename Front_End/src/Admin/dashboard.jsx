@@ -388,7 +388,7 @@ const Dashboard = () => {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "orders", label: "Pedidos", icon: ClipboardList },
-    { id: "inventory", label: "Inventario", icon: Package },
+    { id: "inventory", label: "Menu", icon: Package },
     { id: "users", label: "Usuarios", icon: Users },
     { id: "contacts", label: "Contactos", icon: Mail },
     { id: "reports", label: "Reportes", icon: BarChart },
