@@ -4,51 +4,16 @@ import Movimiento from '../models/Movimiento.js';
 import { enviarCorreoPedido } from '../services/emailService.js';
 import mongoose from 'mongoose';
 
-//////////////////////////////////////////////////////////////// CREACIÓN DE ORDEN + REGISTRO DE MOVIMIENTOS //////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////// CREACIÓN DE ORDEN //////////////////////////////////////////////////////////////
 export const createOrder = async (req, res) => {
-  const { items, totalPrice, orderDescription, status, customerEmail } = req.body;
-  const userId = req.userId;
-
-  if (!items?.length || !totalPrice || !orderDescription || !customerEmail || !userId) {
-    return res.status(400).json({ message: 'Faltan datos del pedido.' });
-  }
-
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    // 1️⃣ Verificar stock de todos los productos
-    for (const item of items) {
-      const producto = await Producto.findById(item.id).session(session);
-      if (!producto || producto.stock < item.quantity) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          message: `Stock insuficiente para el producto: ${item.title}.`,
-        });
-      }
+    const { items, totalPrice, orderDescription, status, customerEmail } = req.body;
+    const userId = req.userId;
+
+    if (!items?.length || !totalPrice || !orderDescription || !customerEmail || !userId) {
+      return res.status(400).json({ message: 'Faltan datos del pedido.' });
     }
 
-    // 2️⃣ Descontar stock y crear movimientos
-    const movimientos = [];
-    for (const item of items) {
-      await Producto.findByIdAndUpdate(
-        item.id,
-        { $inc: { stock: -item.quantity } },
-        { new: true, session }
-      );
-
-      movimientos.push({
-        productoId: item.id,
-        nombre: item.title,
-        cantidad: item.quantity,
-        tipo: 'SALIDA',
-        fecha: new Date(),
-        referencia: '', // luego asignamos el ID de la orden
-      });
-    }
-
-    // 3️⃣ Crear la orden
     const newOrder = new Order({
       user: userId,
       items,
@@ -58,33 +23,18 @@ export const createOrder = async (req, res) => {
       customerEmail,
     });
 
-    await newOrder.save({ session });
+    await newOrder.save();
 
-    // 4️⃣ Guardar movimientos con referencia a la orden
-    const movimientosConRef = movimientos.map(m => ({
-      ...m,
-      referencia: newOrder._id.toString(),
-    }));
-
-    await Movimiento.insertMany(movimientosConRef, { session });
-
-    // 5️⃣ Confirmar transacción
-    await session.commitTransaction();
-    session.endSession();
-
-    // 6️⃣ Enviar correo de confirmación
+    // Enviar correo de confirmación
     await enviarCorreoPedido(customerEmail, orderDescription, totalPrice);
 
     res.status(201).json({
-      message: 'Pedido creado correctamente, movimientos registrados y correo enviado.',
+      message: 'Pedido creado correctamente.',
       order: newOrder,
     });
-
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error('❌ Error al crear pedido:', error);
-    res.status(500).json({ message: 'Error al crear el pedido' });
+    res.status(500).json({ message: 'Error al crear el pedido.' });
   }
 };
 
@@ -141,57 +91,147 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
-
 ////////////////////////////////////////////////////////////// ACTUALIZAR ORDEN //////////////////////////////////////////////////////////////
 export const updateOrder = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
     const { status, orderDescription } = req.body;
 
-    // Validar ID
+    console.log("🔥 Entrando a updateOrder controlador");
+    console.log("📦 ID recibido:", id);
+    console.log("📩 Body recibido:", req.body);
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID de pedido no válido." });
     }
 
-    // Validar campos obligatorios
-    if (!status && !orderDescription) {
-      return res.status(400).json({
-        message: "Debes enviar al menos un campo para actualizar.",
-      });
-    }
-
-    // Validar estado permitido
-    const estadosPermitidos = ["pendiente", "preparando", "entregado", "cancelado"];
-    if (status && !estadosPermitidos.includes(status.toLowerCase())) {
-      return res.status(400).json({
-        message: `Estado inválido. Los permitidos son: ${estadosPermitidos.join(", ")}`,
-      });
-    }
-
-    // Actualizar pedido
-    const order = await Order.findByIdAndUpdate(
-      id,
-      {
-        ...(status && { status: status.toLowerCase() }),
-        ...(orderDescription && { orderDescription }),
-      },
-      { new: true }
-    );
-
+    const order = await Order.findById(id).session(session);
     if (!order) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Pedido no encontrado." });
     }
+
+    const prevStatus = order.status;
+    console.log("🔁 Estado anterior:", prevStatus);
+
+    if (status) order.status = status.toLowerCase();
+    if (orderDescription) order.orderDescription = orderDescription;
+
+    await order.save({ session });
+
+    // 🟢 PASO CLAVE: Si pasa a ENTREGADO y antes no lo estaba
+    if (status && status.toLowerCase() === "entregado" && prevStatus !== "entregado") {
+      console.log("✅ Pedido marcado como ENTREGADO. Procesando movimientos de salida...");
+
+      const movimientos = [];
+
+      for (const item of order.items) {
+        console.log("🔹 Procesando item:", item.title, "Cantidad:", item.quantity);
+
+        const producto = await Producto.findById(item.id).session(session);
+        if (!producto) {
+          console.error("❌ Producto no encontrado:", item.id);
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: `Producto no encontrado: ${item.title}`,
+          });
+        }
+
+        console.log("📦 Stock actual de", producto.title, ":", producto.stock);
+
+        if (producto.stock < item.quantity) {
+          console.warn(`⚠️ Stock insuficiente para ${producto.title}. Disponible: ${producto.stock}`);
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: `Stock insuficiente para el producto: ${item.title}.`,
+          });
+        }
+
+        // Descontar stock
+        const nuevoStock = producto.stock - item.quantity;
+        await Producto.findByIdAndUpdate(
+          item.id,
+          { $set: { stock: nuevoStock } },
+          { new: true, session }
+        );
+
+        console.log(`📉 Stock actualizado para ${producto.title}: ${nuevoStock}`);
+
+        // Crear registro de movimiento
+        movimientos.push({
+          productoId: item.id,
+          nombre: item.title,
+          cantidad: item.quantity,
+          tipo: "SALIDA",
+          fecha: new Date(),
+          referencia: order._id.toString(),
+        });
+      }
+
+      console.log("🧾 Movimientos generados:", movimientos.length);
+      if (movimientos.length > 0) {
+        await Movimiento.insertMany(movimientos, { session });
+        console.log("✅ Movimientos de salida registrados correctamente.");
+      }
+    }
+
+    // 🔴 Si el pedido cambia a CANCELADO desde ENTREGADO → revertir stock
+    if (status && status.toLowerCase() === "cancelado" && prevStatus === "entregado") {
+      console.log("♻️ Pedido cancelado, reponiendo stock...");
+
+      const movimientosEntrada = [];
+
+      for (const item of order.items) {
+        const producto = await Producto.findById(item.id).session(session);
+        if (producto) {
+          const nuevoStock = producto.stock + item.quantity;
+          await Producto.findByIdAndUpdate(
+            item.id,
+            { $set: { stock: nuevoStock } },
+            { new: true, session }
+          );
+
+          movimientosEntrada.push({
+            productoId: item.id,
+            nombre: item.title,
+            cantidad: item.quantity,
+            tipo: "ENTRADA",
+            fecha: new Date(),
+            referencia: order._id.toString(),
+          });
+
+          console.log(`📈 Stock restaurado para ${producto.title}: ${nuevoStock}`);
+        }
+      }
+
+      if (movimientosEntrada.length > 0) {
+        await Movimiento.insertMany(movimientosEntrada, { session });
+        console.log("✅ Movimientos de entrada (cancelación) registrados.");
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    console.log("✅ Transacción completada correctamente.");
 
     res.status(200).json({
       message: "Pedido actualizado correctamente.",
       order,
     });
   } catch (error) {
-    console.error("Error al actualizar pedido:", error);
+    await session.abortTransaction();
+    session.endSession();
+    console.error("❌ Error al actualizar pedido:", error);
     res.status(500).json({ message: "Error al actualizar el pedido." });
   }
 };
-
 
 ////////////////////////////////////////////////////////////// ELIMINAR ORDEN //////////////////////////////////////////////////////////////
 export const deleteOrder = async (req, res) => {

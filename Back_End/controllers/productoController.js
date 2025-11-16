@@ -1,4 +1,6 @@
 import Producto from '../models/Producto.js';
+import Movimiento from '../models/Movimiento.js';
+import mongoose from 'mongoose';
 
 ////////////////////////////////////////////////////////////// MOSTRAR PRODUCTOS //////////////////////////////////////////////////////////////
 export const getProductos = async (req, res) => {
@@ -43,30 +45,67 @@ export const toggleEstadoProducto = async (req, res) => {
   }
 };
 
-////////////////////////////////////////////////////////////// ACTUALIZACION AUTOMATICA DE ESTADOS DE PRODUCTOS //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// ACTUALIZAR PRODUCTO (con registro de ENTRADA si aumenta stock) //////////////////////////////////////////////////////////////
 export const updateProducto = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
     const data = req.body;
 
-    const producto = await Producto.findById(id);
+    const producto = await Producto.findById(id).session(session);
     if (!producto) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
 
-    // Actualizamos los campos recibidos
+    const stockAnterior = producto.stock;
+    const stockNuevo = data.stock !== undefined ? Number(data.stock) : stockAnterior;
+
+    // Actualizar campos recibidos
     Object.assign(producto, data);
 
-    // Si el stock es 0, forzamos estado a false
+    // Si el stock es 0, forzamos estado = false
     if (producto.stock === 0) {
       producto.estado = false;
+    } else {
+      producto.estado = true;
     }
 
-    await producto.save();
+    await producto.save({ session });
 
-    res.status(200).json(producto);
+    ///////////////////////////////////////////////////////////
+    // 🟢 Registrar movimiento si el stock AUMENTA
+    ///////////////////////////////////////////////////////////
+    const diferencia = stockNuevo - stockAnterior;
+    if (diferencia > 0) {
+      const movimiento = new Movimiento({
+        productoId: producto._id,
+        nombre: producto.title,
+        cantidad: diferencia,
+        tipo: 'ENTRADA',
+        fecha: new Date(),
+        referencia: 'AJUSTE_MANUAL', // puedes cambiar a "actualización de producto" o un ID de lote
+      });
+
+      await movimiento.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({
+      message: 'Producto actualizado correctamente',
+      producto,
+      movimientoRegistrado: diferencia > 0 ? true : false,
+    });
+
   } catch (error) {
-    console.error(error);
+    await session.abortTransaction();
+    session.endSession();
+    console.error('❌ Error al actualizar el producto:', error);
     res.status(500).json({ message: 'Error al actualizar el producto' });
   }
 };
@@ -76,17 +115,11 @@ export const createProducto = async (req, res) => {
   try {
     const data = req.body;
 
-    // Validación básica (puedes mejorarla si gustas)
     if (!data.title || !data.description || !data.price || !data.category || !data.unidad) {
       return res.status(400).json({ message: 'Faltan campos obligatorios' });
     }
 
-    // Si no se proporciona el campo `estado`, lo activamos por defecto
-    if (data.stock === 0) {
-      data.estado = false;
-    } else {
-      data.estado = true;
-    }
+    data.estado = data.stock > 0;
 
     const nuevoProducto = new Producto(data);
     await nuevoProducto.save();
@@ -101,31 +134,28 @@ export const createProducto = async (req, res) => {
 ////////////////////////////////////////////////////////////// CARGA MASIVA DE PRODUCTOS //////////////////////////////////////////////////////////////
 export const bulkUpdateProductos = async (req, res) => {
   try {
-    const updates = req.body; // Se espera un array de productos [{ _id, title, price, ... }]
+    const updates = req.body;
 
     if (!Array.isArray(updates) || updates.length === 0) {
       return res.status(400).json({ message: 'Debe enviar un arreglo de productos para actualizar.' });
     }
 
-    // Creamos las operaciones en bloque
     const bulkOps = updates.map((prod) => {
       if (!prod._id) {
-        // Si no tiene _id, se puede crear nuevo producto
         return {
-          insertOne: { document: { ...prod, estado: prod.stock === 0 ? false : true } }
+          insertOne: { document: { ...prod, estado: prod.stock === 0 ? false : true } },
         };
       } else {
-        // Si tiene _id, se actualiza
         return {
           updateOne: {
             filter: { _id: prod._id },
             update: {
               $set: {
                 ...prod,
-                estado: prod.stock === 0 ? false : true // regla automática
-              }
-            }
-          }
+                estado: prod.stock === 0 ? false : true,
+              },
+            },
+          },
         };
       }
     });
@@ -138,4 +168,3 @@ export const bulkUpdateProductos = async (req, res) => {
     res.status(500).json({ message: 'Error en la carga masiva de productos', error });
   }
 };
-

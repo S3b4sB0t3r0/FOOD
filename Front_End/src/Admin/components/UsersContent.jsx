@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from "react";
 import { Trash2, Search, Filter, X, Upload } from "lucide-react";
-import BulkUploadModal from "../components/modals/BulkUploadModal"; // 👈 Importar la modal
+import BulkUploadModal from "../components/modals/BulkUploadModal"; 
+import UserEditModal from "./modals/UserEditModal";
 
 const UsersContent = ({ users, setUsers, handleDelete }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState("todos");
-  const [showBulkUpload, setShowBulkUpload] = useState(false); // 👈 Estado para la modal
+  const [showBulkUpload, setShowBulkUpload] = useState(false); 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // Obtener roles únicos
   const uniqueRoles = useMemo(() => {
@@ -43,8 +46,20 @@ const UsersContent = ({ users, setUsers, handleDelete }) => {
 
   const hasActiveFilters = searchTerm || roleFilter !== "todos" || statusFilter !== "todos";
 
-  // 👇 Función para recargar usuarios después de carga masiva
+  // Función para recargar usuarios después de carga masiva
   const handleBulkUploadSuccess = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/user/');
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Error al recargar usuarios:', error);
+    }
+  };
+
+  const handleEditSuccess = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/user/');
       const data = await res.json();
@@ -66,7 +81,7 @@ const UsersContent = ({ users, setUsers, handleDelete }) => {
             <div className="text-sm text-gray-400">
               {filteredUsers.length} de {users.length} usuarios
             </div>
-            {/* 👇 BOTÓN DE CARGA MASIVA */}
+            {/* BOTÓN DE CARGA MASIVA */}
             <button
               onClick={() => setShowBulkUpload(true)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all font-medium shadow-lg shadow-blue-500/20"
@@ -153,6 +168,7 @@ const UsersContent = ({ users, setUsers, handleDelete }) => {
                 <th className="text-left py-3 px-4 font-medium text-gray-300">Teléfono</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-300">Estado</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-300">Último Login</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Acciones</th>
               </tr>
             </thead>
 
@@ -207,10 +223,28 @@ const UsersContent = ({ users, setUsers, handleDelete }) => {
                       ></div>
                     </button>
                   </td>
-
+                  
                   {/* === FECHA === */}
                   <td className="py-3 px-4 text-gray-300 text-sm">
                     {new Date(user.updatedAt).toLocaleString()}
+                  </td>
+
+                  {/* === ACCIONES === */}
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowEditModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Editar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -240,8 +274,16 @@ const UsersContent = ({ users, setUsers, handleDelete }) => {
           )}
         </div>
       </div>
+      
+      {/* Modal de Edición */}
+      <UserEditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        user={selectedUser}
+        onSuccess={handleEditSuccess}
+      />
 
-      {/* 👇 MODAL DE CARGA MASIVA */}
+      {/* MODAL DE CARGA MASIVA */}
       <BulkUploadModal
         isOpen={showBulkUpload}
         onClose={() => setShowBulkUpload(false)}

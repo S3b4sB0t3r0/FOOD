@@ -170,21 +170,36 @@ export default function ViewOrderModal({ isOpen, onClose, order }) {
                   const itemQuantity = item.quantity || 1;
                   const itemPrice = item.price || 0;
                   const subtotal = itemQuantity * itemPrice;
+                  const itemObservation = item.observation;
 
                   return (
                     <div 
                       key={idx} 
-                      className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-700"
+                      className="bg-gray-900/50 p-3 rounded-lg border border-gray-700"
                     >
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{itemName}</p>
-                        <p className="text-sm text-gray-400">
-                          {itemQuantity} x ${itemPrice.toLocaleString()}
-                        </p>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{itemName}</p>
+                          <p className="text-sm text-gray-400">
+                            {itemQuantity} x ${itemPrice.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-yellow-400 font-bold">${subtotal.toLocaleString()}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-yellow-400 font-bold">${subtotal.toLocaleString()}</p>
-                      </div>
+                      
+                      {itemObservation && (
+                        <div className="mt-2 pt-2 border-t border-gray-700/50">
+                          <p className="text-gray-400 text-xs mb-1 font-medium flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            Observación del cliente:
+                          </p>
+                          <p className="text-yellow-300 text-sm bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
+                            💬 "{itemObservation}"
+                          </p>
+                        </div>
+                      )}
                     </div>
                   );
                 })

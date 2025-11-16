@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { DollarSign, ShoppingCart, Users, Download, TrendingUp, FileText, Calendar, PieChart as PieChartIcon } from "lucide-react";
+import { DollarSign, ShoppingCart, Users, Download, TrendingUp, FileText, Calendar, PieChart as PieChartIcon, Filter } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -19,20 +19,41 @@ const ReportsContent = () => {
   const [reportStats, setReportStats] = useState(null);
   const [ventasPeriodo, setVentasPeriodo] = useState([]);
   const [topProductos, setTopProductos] = useState([]);
-  const [periodo, setPeriodo] = useState('mensual');
+  const [agrupacion, setAgrupacion] = useState('mes');
   const [loading, setLoading] = useState(true);
+  
+  // Estados para el selector de fechas
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   useEffect(() => {
-    cargarDatos();
-  }, [periodo]);
+    // Establecer fechas por defecto (último mes)
+    const hoy = new Date();
+    const haceUnMes = new Date();
+    haceUnMes.setMonth(hoy.getMonth() - 1);
+    
+    setFechaFin(hoy.toISOString().split('T')[0]);
+    setFechaInicio(haceUnMes.toISOString().split('T')[0]);
+  }, []);
+
+  useEffect(() => {
+    if (fechaInicio && fechaFin) {
+      cargarDatos();
+    }
+  }, [fechaInicio, fechaFin, agrupacion]);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
+      
+      // Construir parámetros de fecha
+      const params = `fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+      
       const [statsRes, ventasRes, productosRes] = await Promise.all([
-        fetch('http://localhost:5000/api/reportes/stats'),
-        fetch(`http://localhost:5000/api/reportes/ventas-periodo?periodo=${periodo}`),
-        fetch('http://localhost:5000/api/reportes/productos-top?limite=5')
+        fetch(`http://localhost:5000/api/reportes/stats?${params}`),
+        fetch(`http://localhost:5000/api/reportes/ventas-periodo?${params}&agrupacion=${agrupacion}`),
+        fetch(`http://localhost:5000/api/reportes/productos-top?${params}&limite=5`)
       ]);
 
       const stats = await statsRes.json();
@@ -40,8 +61,8 @@ const ReportsContent = () => {
       const productos = await productosRes.json();
 
       setReportStats(stats);
-      setVentasPeriodo(ventas);
-      setTopProductos(productos);
+      setVentasPeriodo(ventas.datos || ventas);
+      setTopProductos(productos.productos || productos);
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -50,7 +71,34 @@ const ReportsContent = () => {
   };
 
   const handleDownloadPDF = () => {
-    window.open('http://localhost:5000/api/reportes/pdf', '_blank');
+    const params = `fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+    window.open(`http://localhost:5000/api/reportes/pdf?${params}`, '_blank');
+  };
+
+  const aplicarFiltroRapido = (dias) => {
+    const hoy = new Date();
+    const inicio = new Date();
+    inicio.setDate(hoy.getDate() - dias);
+    
+    setFechaInicio(inicio.toISOString().split('T')[0]);
+    setFechaFin(hoy.toISOString().split('T')[0]);
+  };
+
+  // Custom Tooltip con texto blanco
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-gray-900 border border-gray-700 p-3 rounded-lg shadow-xl">
+          <p className="text-white font-semibold mb-1">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: ${entry.value?.toLocaleString()}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   if (loading) {
@@ -67,25 +115,110 @@ const ReportsContent = () => {
   return (
     <div className="space-y-6">
       {/* === HEADER === */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
             <FileText className="w-5 h-5 text-yellow-400" />
           </div>
           <div>
             <h3 className="text-xl font-bold text-white">Reporte General</h3>
-            <p className="text-sm text-gray-400">Análisis completo del sistema</p>
+            <p className="text-sm text-gray-400">
+              Del {new Date(fechaInicio).toLocaleDateString('es-CO')} al {new Date(fechaFin).toLocaleDateString('es-CO')}
+            </p>
           </div>
         </div>
 
-        <button
-          onClick={handleDownloadPDF}
-          className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-6 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
-        >
-          <Download className="w-4 h-4" />
-          Descargar PDF
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-lg font-semibold border border-gray-700 transition-all duration-300 flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-6 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Descargar PDF
+          </button>
+        </div>
       </div>
+
+      {/* === PANEL DE FILTROS === */}
+      {mostrarFiltros && (
+        <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
+          <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-yellow-400" />
+            Seleccionar Rango de Fechas
+          </h4>
+          
+          {/* Filtros Rápidos */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-400 mb-2">Filtros rápidos:</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Últimos 7 días', dias: 7 },
+                { label: 'Últimos 15 días', dias: 15 },
+                { label: 'Último mes', dias: 30 },
+                { label: 'Últimos 3 meses', dias: 90 },
+                { label: 'Último año', dias: 365 }
+              ].map((filtro) => (
+                <button
+                  key={filtro.dias}
+                  onClick={() => aplicarFiltroRapido(filtro.dias)}
+                  className="px-3 py-1.5 bg-gray-800 hover:bg-yellow-500 hover:text-black text-gray-300 rounded-lg text-sm transition-all"
+                >
+                  {filtro.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Selector de Fechas Personalizado */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Fecha Inicio
+              </label>
+              <input
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Fecha Fin
+              </label>
+              <input
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Agrupar por
+              </label>
+              <select
+                value={agrupacion}
+                onChange={(e) => setAgrupacion(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              >
+                <option value="dia">Día</option>
+                <option value="semana">Semana</option>
+                <option value="mes">Mes</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* === TARJETAS DE ESTADÍSTICAS === */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -105,7 +238,7 @@ const ReportsContent = () => {
           </p>
           <div className="flex items-center gap-1 text-xs text-green-400">
             <TrendingUp className="w-3 h-3" />
-            <span>Ingresos totales generados</span>
+            <span>Ingresos en el período</span>
           </div>
         </div>
 
@@ -126,7 +259,7 @@ const ReportsContent = () => {
             {reportStats?.totalPedidos || 0}
           </p>
           <div className="text-xs text-gray-400">
-            Órdenes procesadas en total
+            Órdenes en el período
           </div>
         </div>
 
@@ -147,30 +280,7 @@ const ReportsContent = () => {
             {reportStats?.totalUsuarios || 0}
           </p>
           <div className="text-xs text-gray-400">
-            Usuarios registrados en el sistema
-          </div>
-        </div>
-      </div>
-
-      {/* === SELECTOR DE PERÍODO === */}
-      <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-4 rounded-xl">
-        <div className="flex items-center gap-4">
-          <Calendar className="w-5 h-5 text-yellow-400" />
-          <span className="text-white font-medium">Período de análisis:</span>
-          <div className="flex gap-2">
-            {['diario', 'semanal', 'mensual'].map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriodo(p)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  periodo === p
-                    ? 'bg-yellow-500 text-black'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
-              >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
-            ))}
+            Usuarios registrados
           </div>
         </div>
       </div>
@@ -186,19 +296,22 @@ const ReportsContent = () => {
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={ventasPeriodo}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
-                  borderRadius: "8px",
-                  color: "#fff",
-                }}
+              <XAxis 
+                dataKey="name" 
+                stroke="#9ca3af" 
+                fontSize={12}
+                tick={{ fill: '#fff' }}
               />
+              <YAxis 
+                stroke="#9ca3af" 
+                fontSize={12}
+                tick={{ fill: '#fff' }}
+              />
+              <Tooltip content={<CustomTooltip />} />
               <Area
                 type="monotone"
                 dataKey="ventas"
+                name="Ventas"
                 stroke="#f59e0b"
                 fill="#f59e0b"
                 fillOpacity={0.2}
@@ -214,32 +327,40 @@ const ReportsContent = () => {
             <PieChartIcon className="w-5 h-5 text-yellow-400" />
             Top Productos
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={topProductos}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={5}
-                dataKey="value"
-                label
-              >
-                {topProductos.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
-                  borderRadius: "8px",
-                  color: "#fff",
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {topProductos.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={topProductos}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={120}
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                  labelLine={{ stroke: '#fff' }}
+                >
+                  {topProductos.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                  }}
+                  itemStyle={{ color: '#fff' }}
+                  labelStyle={{ color: '#fff' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center">
+              <p className="text-gray-400">No hay datos en este período</p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -350,7 +350,6 @@ export const eliminarUsuario = async (req, res) => {
   }
 };
 
-
 ////////////////////////////////////////////////////////////// CARGA MASIVA DE USUARIOS //////////////////////////////////////////////////////////////
 export const cargaMasivaUsuarios = async (req, res) => {
   try {
@@ -481,5 +480,78 @@ export const cargaMasivaUsuarios = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error en el servidor al procesar carga masiva' });
+  }
+};
+
+////////////////////////////////////////////////////////////// ACTUALIZAR INFORMACIÓN DE USUARIO (ADMIN) //////////////////////////////////////////////////////////////
+export const updateUserAdmin = async (req, res) => {
+  try {
+  // 👇 DEBUG
+  // console.log('=== DEBUG BACKEND ===');
+  // console.log('req.userId:', req.userId);
+  // console.log('req.params.id:', req.params.id);
+  // console.log('req.body:', req.body);
+  // console.log('Authorization header:', req.headers.authorization);
+  
+  const adminId = req.userId;
+  const { id } = req.params;
+  const { name, correo, direccion, telefono, rol } = req.body;
+
+  // Verificar que el usuario que hace la solicitud sea un administrador
+  const adminUser = await User.findById(adminId);
+  
+  // 👇 DEBUG
+  console.log('Admin user found:', adminUser);
+  console.log('Admin rol:', adminUser?.rol);
+  
+  if (!adminUser || adminUser.rol !== 'administrador') {
+    return res.status(403).json({ message: 'No autorizado. Solo los administradores pueden actualizar usuarios.' });
+  }
+
+    // Validaciones básicas
+    if (!name || !correo) {
+      return res.status(400).json({ message: 'Nombre y correo son obligatorios' });
+    }
+
+    const nameRegex = /^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]+$/;
+    if (!nameRegex.test(name)) {
+      return res.status(400).json({ message: 'El nombre solo puede contener letras y espacios' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo)) {
+      return res.status(400).json({ message: 'El correo electrónico no es válido' });
+    }
+
+    // Validar rol (si se envía)
+    const rolesPermitidos = ['administrador', 'empleado', 'cliente'];
+    if (rol && !rolesPermitidos.includes(rol)) {
+      return res.status(400).json({ message: 'Rol no válido' });
+    }
+
+    // Verificar que el correo no esté en uso por otro usuario
+    const existingUser = await User.findOne({ correo, _id: { $ne: id } });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Este correo ya está en uso por otro usuario' });
+    }
+
+    // Actualizar datos
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { name, correo, direccion, telefono, ...(rol ? { rol } : {}) },
+      { new: true, runValidators: true, context: 'query' }
+    ).select('-contraseña -__v');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    res.status(200).json({
+      message: 'Usuario actualizado correctamente',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error en el servidor', error: error.message });
   }
 };
