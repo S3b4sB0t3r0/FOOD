@@ -4,9 +4,7 @@ import Movimiento from '../models/Movimiento.js';
 import { enviarCorreoPedido } from '../services/emailService.js';
 import mongoose from 'mongoose';
 
-//////////////////////////////////////////////////////////////// 
-// EMPLEADOS: OBTENER TODAS LAS ÓRDENES
-////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////// EMPLEADOS: OBTENER TODAS LAS ÓRDENES////////////////////////////////////////////////////////////////
 export const getAllOrdersEmployee = async (req, res) => {
   try {
     const { status, limit = 50, page = 1 } = req.query;
@@ -62,9 +60,7 @@ export const getAllOrdersEmployee = async (req, res) => {
   }
 };
 
-//////////////////////////////////////////////////////////////// 
-// EMPLEADOS: EDITAR ORDEN COMPLETA
-////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////// EMPLEADOS: EDITAR ORDEN COMPLETA////////////////////////////////////////////////////////////////
 export const editOrderEmployee = async (req, res) => {
   const { id } = req.params;
   const {
@@ -76,26 +72,13 @@ export const editOrderEmployee = async (req, res) => {
     sendEmail = false,
   } = req.body;
 
+  //console.log("🔥 Entrando a editOrderEmployee");
+  //console.log("🆔 ID pedido:", id);
+  //console.log("📩 Body recibido:", req.body);
+
   // Validaciones básicas
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ 
-      success: false,
-      message: "ID de pedido no válido." 
-    });
-  }
-
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ 
-      success: false,
-      message: "Debes proporcionar al menos un producto." 
-    });
-  }
-
-  if (!totalPrice || !orderDescription || !customerEmail) {
-    return res.status(400).json({ 
-      success: false,
-      message: "Faltan datos requeridos (totalPrice, orderDescription, customerEmail)." 
-    });
+    return res.status(400).json({ success: false, message: "ID de pedido no válido." });
   }
 
   const estadosPermitidos = ["pendiente", "preparando", "entregado", "cancelado"];
@@ -110,152 +93,181 @@ export const editOrderEmployee = async (req, res) => {
   session.startTransaction();
 
   try {
-    // Buscar orden existente
+    // Buscar la orden existente
     const order = await Order.findById(id).session(session);
     if (!order) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ 
-        success: false,
-        message: "Pedido no encontrado." 
-      });
+      return res.status(404).json({ success: false, message: "Pedido no encontrado." });
     }
 
-    // Guardar items anteriores
-    const previousItems = order.items.map(item => ({
-      id: item.id || item._id,
-      title: item.title,
-      quantity: item.quantity,
-    }));
+    const prevStatus = order.status;
+    //console.log("🔁 Estado anterior:", prevStatus);
 
-    // Validar existencia y stock de productos nuevos
-    for (const item of items) {
-      if (!item.id || !item.title || !item.quantity || !item.price) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ 
-          success: false,
-          message: `Producto incompleto: ${JSON.stringify(item)}` 
-        });
+    // === EDITAR ITEMS Y STOCK SI CAMBIARON ===
+    let movimientos = [];
+
+    if (items && Array.isArray(items) && items.length > 0) {
+      //console.log("🛠️ Actualizando productos...");
+
+      const previousItems = order.items.map(item => ({
+        id: item.id || item._id,
+        title: item.title,
+        quantity: item.quantity,
+      }));
+
+      // Validar productos y stock
+      for (const item of items) {
+        const producto = await Producto.findById(item.id).session(session);
+        if (!producto) {
+          throw new Error(`Producto no encontrado: ${item.title}`);
+        }
+
+        const oldItem = previousItems.find(i => i.id.toString() === item.id.toString());
+        const cantidadAnterior = oldItem ? oldItem.quantity : 0;
+        const diferencia = item.quantity - cantidadAnterior;
+
+        // Si aumenta cantidad → verificar stock disponible
+        if (diferencia > 0 && producto.stock < diferencia) {
+          throw new Error(`Stock insuficiente para ${item.title}. Disponible: ${producto.stock}`);
+        }
+
+        // Aplicar diferencias
+        if (diferencia !== 0) {
+          await Producto.findByIdAndUpdate(
+            item.id,
+            { $inc: { stock: -diferencia } },
+            { new: true, session }
+          );
+
+          movimientos.push({
+            productoId: item.id,
+            nombre: item.title,
+            cantidad: Math.abs(diferencia),
+            tipo: diferencia > 0 ? "SALIDA" : "ENTRADA",
+            fecha: new Date(),
+            referencia: id,
+          });
+
+          // //console.log(
+          //   diferencia > 0
+          //     ? `📉 Disminuyendo ${diferencia} unidades de ${item.title}`
+          //     : `📈 Aumentando ${Math.abs(diferencia)} unidades de ${item.title}`
+          // //);
+        }
       }
 
-      const producto = await Producto.findById(item.id).session(session);
-      if (!producto) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ 
-          success: false,
-          message: `Producto no encontrado: ${item.title}` 
-        });
-      }
+      // Detectar productos eliminados
+      const productosEliminados = previousItems.filter(
+        prev => !items.some(curr => curr.id.toString() === prev.id.toString())
+      );
 
-      // Calcular diferencia de cantidad
-      const oldItem = previousItems.find(i => i.id.toString() === item.id.toString());
-      const cantidadAnterior = oldItem ? oldItem.quantity : 0;
-      const diferencia = item.quantity - cantidadAnterior;
-
-      // Si aumenta cantidad → verificar stock disponible
-      if (diferencia > 0 && producto.stock < diferencia) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          success: false,
-          message: `Stock insuficiente para ${item.title}. Disponible: ${producto.stock}, requerido: ${diferencia}`,
-        });
-      }
-    }
-
-    // Actualizar stock según diferencias
-    const movimientos = [];
-    
-    for (const item of items) {
-      const oldItem = previousItems.find(i => i.id.toString() === item.id.toString());
-      const cantidadAnterior = oldItem ? oldItem.quantity : 0;
-      const diferencia = item.quantity - cantidadAnterior;
-
-      // Aumenta cantidad -> SALIDA de stock
-      if (diferencia > 0) {
+      for (const eliminado of productosEliminados) {
         await Producto.findByIdAndUpdate(
-          item.id,
-          { $inc: { stock: -diferencia } },
-          { new: true, session }
+          eliminado.id,
+          { $inc: { stock: eliminado.quantity } },
+          { session }
         );
-
         movimientos.push({
-          productoId: item.id,
-          nombre: item.title,
-          cantidad: diferencia,
-          tipo: "SALIDA",
-          fecha: new Date(),
-          referencia: id,
-        });
-      }
-
-      // Disminuye cantidad -> ENTRADA de stock
-      if (diferencia < 0) {
-        await Producto.findByIdAndUpdate(
-          item.id,
-          { $inc: { stock: Math.abs(diferencia) } },
-          { new: true, session }
-        );
-
-        movimientos.push({
-          productoId: item.id,
-          nombre: item.title,
-          cantidad: Math.abs(diferencia),
+          productoId: eliminado.id,
+          nombre: eliminado.title,
+          cantidad: eliminado.quantity,
           tipo: "ENTRADA",
           fecha: new Date(),
           referencia: id,
         });
+      //  console.log(`♻️ Producto eliminado: ${eliminado.title} — stock devuelto`);
+      }
+
+      // Actualizar pedido
+      order.items = items;
+    }
+
+    // Actualizar otros datos del pedido
+    if (totalPrice) order.totalPrice = totalPrice;
+    if (orderDescription) order.orderDescription = orderDescription;
+    if (customerEmail) order.customerEmail = customerEmail;
+    if (status) order.status = status.toLowerCase();
+    order.updatedAt = new Date();
+
+    // === 🟢 LÓGICA PARA ENTREGADO ===
+    if (status && status.toLowerCase() === "entregado" && prevStatus !== "entregado") {
+      //console.log("✅ Pedido marcado como ENTREGADO → registrando SALIDAS...");
+
+      for (const item of order.items) {
+        const producto = await Producto.findById(item.id).session(session);
+        if (!producto) continue;
+
+        if (producto.stock < item.quantity) {
+          throw new Error(`Stock insuficiente para ${item.title}. Disponible: ${producto.stock}`);
+        }
+
+        await Producto.findByIdAndUpdate(
+          item.id,
+          { $inc: { stock: -item.quantity } },
+          { new: true, session }
+        );
+
+        movimientos.push({
+          productoId: item.id,
+          nombre: item.title,
+          cantidad: item.quantity,
+          tipo: "SALIDA",
+          fecha: new Date(),
+          referencia: id,
+        });
+
+       // console.log(`📦 Salida registrada por entrega: ${item.title} (-${item.quantity})`);
       }
     }
 
-    // Detectar productos eliminados del pedido
-    const productosEliminados = previousItems.filter(
-      prev => !items.some(curr => curr.id.toString() === prev.id.toString())
-    );
+    // === 🔴 LÓGICA PARA CANCELADO ===
+    if (status && status.toLowerCase() === "cancelado" && prevStatus === "entregado") {
+     // console.log("♻️ Pedido cancelado tras entrega → registrando ENTRADAS...");
 
-    // Reponer stock de productos eliminados
-    for (const eliminado of productosEliminados) {
-      await Producto.findByIdAndUpdate(
-        eliminado.id,
-        { $inc: { stock: eliminado.quantity } },
-        { session }
-      );
+      for (const item of order.items) {
+        const producto = await Producto.findById(item.id).session(session);
+        if (!producto) continue;
 
-      movimientos.push({
-        productoId: eliminado.id,
-        nombre: eliminado.title,
-        cantidad: eliminado.quantity,
-        tipo: "ENTRADA",
-        fecha: new Date(),
-        referencia: id,
-      });
+        await Producto.findByIdAndUpdate(
+          item.id,
+          { $inc: { stock: item.quantity } },
+          { new: true, session }
+        );
+
+        movimientos.push({
+          productoId: item.id,
+          nombre: item.title,
+          cantidad: item.quantity,
+          tipo: "ENTRADA",
+          fecha: new Date(),
+          referencia: id,
+        });
+
+      //  console.log(`📈 Stock devuelto por cancelación: ${item.title} (+${item.quantity})`);
+      }
     }
 
-    // Actualizar orden
-    order.items = items;
-    order.totalPrice = totalPrice;
-    order.orderDescription = orderDescription;
-    order.status = status ? status.toLowerCase() : order.status;
-    order.customerEmail = customerEmail;
-    order.updatedAt = new Date();
-
+    // === Guardar pedido actualizado ===
     await order.save({ session });
 
-    // Registrar movimientos
+    // === Registrar movimientos si los hay ===
     if (movimientos.length > 0) {
       await Movimiento.insertMany(movimientos, { session });
+     // console.log(`🧾 ${movimientos.length} movimientos registrados.`);
     }
 
-    // Confirmar transacción
     await session.commitTransaction();
     session.endSession();
 
     // Enviar correo si se requiere
     if (sendEmail && customerEmail) {
       try {
-        await enviarCorreoPedido(customerEmail, orderDescription, totalPrice);
+        await enviarCorreoPedido(
+          customerEmail,
+          orderDescription || "Tu pedido ha sido actualizado",
+          totalPrice
+        );
       } catch (err) {
         console.warn("⚠️ No se pudo enviar el correo:", err.message);
       }
@@ -268,20 +280,21 @@ export const editOrderEmployee = async (req, res) => {
       movimientosRegistrados: movimientos.length,
     });
 
+  //  console.log("✅ Transacción finalizada correctamente.");
+
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     console.error("❌ Error al editar pedido (empleado):", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Error al editar el pedido." 
+      message: "Error al editar el pedido.",
+      error: error.message,
     });
   }
 };
 
-//////////////////////////////////////////////////////////////// 
-// EMPLEADOS: CREAR NUEVA ORDEN
-////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////// EMPLEADOS: CREAR NUEVA ORDEN////////////////////////////////////////////////////////////////
 export const createOrderEmployee = async (req, res) => {
   const { 
     items, // [{ id, title, quantity, price }]
@@ -291,6 +304,9 @@ export const createOrderEmployee = async (req, res) => {
     customerEmail,
     sendEmail = true
   } = req.body;
+
+  console.log("🧾 Creando orden de empleado...");
+  console.log("📩 Datos recibidos:", req.body);
 
   // Validaciones
   if (!items?.length || !totalPrice || !orderDescription || !customerEmail) {
@@ -323,7 +339,7 @@ export const createOrderEmployee = async (req, res) => {
   session.startTransaction();
 
   try {
-    // Verificar stock de todos los productos
+    // ✅ Verificar que los productos existan (pero NO descontar stock)
     for (const item of items) {
       const producto = await Producto.findById(item.id).session(session);
       if (!producto) {
@@ -334,37 +350,9 @@ export const createOrderEmployee = async (req, res) => {
           message: `Producto no encontrado: ${item.title}.`,
         });
       }
-      
-      if (producto.stock < item.quantity) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({
-          success: false,
-          message: `Stock insuficiente para ${item.title}. Disponible: ${producto.stock}, requerido: ${item.quantity}`,
-        });
-      }
     }
 
-    // Descontar stock y preparar movimientos
-    const movimientos = [];
-    for (const item of items) {
-      await Producto.findByIdAndUpdate(
-        item.id,
-        { $inc: { stock: -item.quantity } },
-        { new: true, session }
-      );
-
-      movimientos.push({
-        productoId: item.id,
-        nombre: item.title,
-        cantidad: item.quantity,
-        tipo: 'SALIDA',
-        fecha: new Date(),
-        referencia: '', // se asignará después
-      });
-    }
-
-    // Crear la orden (sin userId ya que es creada por empleado)
+    // ✅ Crear la orden (sin tocar el stock ni registrar movimientos)
     const newOrder = new Order({
       items,
       totalPrice,
@@ -375,19 +363,11 @@ export const createOrderEmployee = async (req, res) => {
 
     await newOrder.save({ session });
 
-    // Guardar movimientos con referencia a la orden
-    const movimientosConRef = movimientos.map(m => ({
-      ...m,
-      referencia: newOrder._id.toString(),
-    }));
-
-    await Movimiento.insertMany(movimientosConRef, { session });
-
     // Confirmar transacción
     await session.commitTransaction();
     session.endSession();
 
-    // Enviar correo de confirmación
+    // 📧 Enviar correo si se solicita
     if (sendEmail) {
       try {
         await enviarCorreoPedido(customerEmail, orderDescription, totalPrice);
@@ -398,10 +378,11 @@ export const createOrderEmployee = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Pedido creado correctamente por empleado.',
+      message: 'Pedido creado correctamente por empleado (sin afectar stock).',
       order: newOrder,
-      movimientosRegistrados: movimientos.length,
     });
+
+    console.log("✅ Pedido creado correctamente sin modificar stock.");
 
   } catch (error) {
     await session.abortTransaction();
@@ -414,9 +395,8 @@ export const createOrderEmployee = async (req, res) => {
   }
 };
 
-//////////////////////////////////////////////////////////////// 
-// EMPLEADOS: OBTENER ORDEN POR ID
-////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////// // EMPLEADOS: OBTENER ORDEN POR ID ////////////////////////////////////////////////////////////////
 export const getOrderByIdEmployee = async (req, res) => {
   try {
     const { id } = req.params;
@@ -491,9 +471,7 @@ export const getOrderByIdEmployee = async (req, res) => {
   }
 };
 
-//////////////////////////////////////////////////////////////// 
-// EMPLEADOS: ELIMINAR ORDEN Y REPONER STOCK
-////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////// // EMPLEADOS: ELIMINAR ORDEN Y REPONER STOCK ////////////////////////////////////////////////////////////////
 export const deleteOrderEmployee = async (req, res) => {
   const { id } = req.params;
 

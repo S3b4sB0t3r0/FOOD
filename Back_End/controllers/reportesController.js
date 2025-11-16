@@ -4,20 +4,35 @@ import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
 
-////////////////////////////////////////////////////////////// REPORTE GENERAL //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// REPORTE GENERAL CON RANGO DE FECHAS //////////////////////////////////////////////////////////////
 export const getReportStats = async (req, res) => {
   try {
+    const { fechaInicio, fechaFin } = req.query;
+    
+    // Construir el filtro de fechas
+    let filtroFechas = {};
+    if (fechaInicio && fechaFin) {
+      filtroFechas = {
+        createdAt: {
+          $gte: new Date(fechaInicio),
+          $lte: new Date(new Date(fechaFin).setHours(23, 59, 59, 999)) // Incluir todo el día final
+        }
+      };
+    }
+
     const totalVentas = await Order.aggregate([
+      { $match: filtroFechas },
       { $group: { _id: null, total: { $sum: "$totalPrice" } } }
     ]);
 
-    const totalPedidos = await Order.countDocuments();
+    const totalPedidos = await Order.countDocuments(filtroFechas);
     const totalUsuarios = await User.countDocuments();
 
     res.json({
       totalVentas: totalVentas[0]?.total || 0,
       totalPedidos,
-      totalUsuarios
+      totalUsuarios,
+      rangoFechas: fechaInicio && fechaFin ? { fechaInicio, fechaFin } : null
     });
   } catch (error) {
     console.error(error);
@@ -25,57 +40,54 @@ export const getReportStats = async (req, res) => {
   }
 };
 
-////////////////////////////////////////////////////////////// VENTAS POR PERÍODO //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// VENTAS POR RANGO DE FECHAS CON AGRUPACIÓN //////////////////////////////////////////////////////////////
 export const getVentasPorPeriodo = async (req, res) => {
   try {
-    const { periodo } = req.query; // 'diario', 'semanal', 'mensual'
+    const { fechaInicio, fechaFin, agrupacion } = req.query;
+    // agrupacion puede ser: 'dia', 'semana', 'mes'
     
-    const hoy = new Date();
-    let fechaInicio;
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({ error: "Se requieren fechaInicio y fechaFin" });
+    }
+
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(new Date(fechaFin).setHours(23, 59, 59, 999));
+
     let groupBy;
     let formatLabel;
 
-    switch(periodo) {
-      case 'diario':
-        // Últimos 7 días
-        fechaInicio = new Date(hoy);
-        fechaInicio.setDate(hoy.getDate() - 7);
+    switch(agrupacion) {
+      case 'dia':
         groupBy = {
           year: { $year: "$createdAt" },
           month: { $month: "$createdAt" },
           day: { $dayOfMonth: "$createdAt" }
         };
-        formatLabel = (doc) => `${doc._id.day}/${doc._id.month}`;
+        formatLabel = (doc) => `${doc._id.day}/${doc._id.month}/${doc._id.year}`;
         break;
 
-      case 'semanal':
-        // Últimas 8 semanas
-        fechaInicio = new Date(hoy);
-        fechaInicio.setDate(hoy.getDate() - 56);
+      case 'semana':
         groupBy = {
           year: { $year: "$createdAt" },
           week: { $week: "$createdAt" }
         };
-        formatLabel = (doc) => `Sem ${doc._id.week}`;
+        formatLabel = (doc) => `Sem ${doc._id.week} ${doc._id.year}`;
         break;
 
-      case 'mensual':
+      case 'mes':
       default:
-        // Últimos 12 meses
-        fechaInicio = new Date(hoy);
-        fechaInicio.setMonth(hoy.getMonth() - 12);
         groupBy = {
           year: { $year: "$createdAt" },
           month: { $month: "$createdAt" }
         };
         formatLabel = (doc) => {
           const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-          return meses[doc._id.month - 1];
+          return `${meses[doc._id.month - 1]} ${doc._id.year}`;
         };
     }
 
     const ventas = await Order.aggregate([
-      { $match: { createdAt: { $gte: fechaInicio } } },
+      { $match: { createdAt: { $gte: inicio, $lte: fin } } },
       {
         $group: {
           _id: groupBy,
@@ -92,20 +104,36 @@ export const getVentasPorPeriodo = async (req, res) => {
       pedidos: v.cantidad
     }));
 
-    res.json(resultado);
+    res.json({
+      datos: resultado,
+      rangoFechas: { fechaInicio, fechaFin },
+      agrupacion: agrupacion || 'mes'
+    });
   } catch (error) {
     console.error("Error obteniendo ventas por período:", error);
     res.status(500).json({ error: "Error al obtener ventas por período" });
   }
 };
 
-////////////////////////////////////////////////////////////// PRODUCTOS MÁS VENDIDOS //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// PRODUCTOS MÁS VENDIDOS CON RANGO DE FECHAS //////////////////////////////////////////////////////////////
 export const getProductosMasVendidos = async (req, res) => {
   try {
-    const { limite } = req.query;
+    const { limite, fechaInicio, fechaFin } = req.query;
     const maxProductos = parseInt(limite) || 5;
 
+    // Construir el filtro de fechas
+    let filtroFechas = {};
+    if (fechaInicio && fechaFin) {
+      filtroFechas = {
+        createdAt: {
+          $gte: new Date(fechaInicio),
+          $lte: new Date(new Date(fechaFin).setHours(23, 59, 59, 999))
+        }
+      };
+    }
+
     const productos = await Order.aggregate([
+      { $match: filtroFechas },
       { $unwind: "$items" },
       {
         $group: {
@@ -128,64 +156,89 @@ export const getProductosMasVendidos = async (req, res) => {
       color: colores[index % colores.length]
     }));
 
-    res.json(resultado);
+    res.json({
+      productos: resultado,
+      rangoFechas: fechaInicio && fechaFin ? { fechaInicio, fechaFin } : null
+    });
   } catch (error) {
     console.error("Error obteniendo productos más vendidos:", error);
     res.status(500).json({ error: "Error al obtener productos más vendidos" });
   }
 };
 
-////////////////////////////////////////////////////////////// ANÁLISIS DE INGRESOS Y GASTOS //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// ANÁLISIS FINANCIERO CON RANGO DE FECHAS //////////////////////////////////////////////////////////////
 export const getAnalisisFinanciero = async (req, res) => {
   try {
-    const hoy = new Date();
-    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const { fechaInicio, fechaFin } = req.query;
 
-    // Ingresos por día del mes actual
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({ error: "Se requieren fechaInicio y fechaFin" });
+    }
+
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(new Date(fechaFin).setHours(23, 59, 59, 999));
+
+    // Ingresos por día en el rango seleccionado
     const ingresosDiarios = await Order.aggregate([
-      { $match: { createdAt: { $gte: inicioMes } } },
+      { $match: { createdAt: { $gte: inicio, $lte: fin } } },
       {
         $group: {
-          _id: { $dayOfMonth: "$createdAt" },
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            day: { $dayOfMonth: "$createdAt" }
+          },
           ingresos: { $sum: "$totalPrice" },
           pedidos: { $sum: 1 }
         }
       },
-      { $sort: { "_id": 1 } }
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
     ]);
 
-    // Comparación mes actual vs mes anterior
-    const inicioMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
-    const finMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+    // Total del período seleccionado
+    const totalPeriodo = await Order.aggregate([
+      { $match: { createdAt: { $gte: inicio, $lte: fin } } },
+      { 
+        $group: { 
+          _id: null, 
+          total: { $sum: "$totalPrice" },
+          pedidos: { $sum: 1 }
+        } 
+      }
+    ]);
 
-    const mesActual = await Order.aggregate([
-      { $match: { createdAt: { $gte: inicioMes } } },
+    // Calcular período anterior del mismo tamaño para comparación
+    const diasDiferencia = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24));
+    const inicioPeriodoAnterior = new Date(inicio);
+    inicioPeriodoAnterior.setDate(inicio.getDate() - diasDiferencia);
+    const finPeriodoAnterior = new Date(inicio);
+    finPeriodoAnterior.setDate(inicio.getDate() - 1);
+
+    const totalPeriodoAnterior = await Order.aggregate([
+      { $match: { createdAt: { $gte: inicioPeriodoAnterior, $lte: finPeriodoAnterior } } },
       { $group: { _id: null, total: { $sum: "$totalPrice" } } }
     ]);
 
-    const mesAnterior = await Order.aggregate([
-      { $match: { createdAt: { $gte: inicioMesAnterior, $lte: finMesAnterior } } },
-      { $group: { _id: null, total: { $sum: "$totalPrice" } } }
-    ]);
-
-    const totalMesActual = mesActual[0]?.total || 0;
-    const totalMesAnterior = mesAnterior[0]?.total || 0;
-    const porcentajeCambio = totalMesAnterior > 0 
-      ? ((totalMesActual - totalMesAnterior) / totalMesAnterior * 100).toFixed(2)
+    const totalActual = totalPeriodo[0]?.total || 0;
+    const totalAnterior = totalPeriodoAnterior[0]?.total || 0;
+    const porcentajeCambio = totalAnterior > 0 
+      ? ((totalActual - totalAnterior) / totalAnterior * 100).toFixed(2)
       : 0;
 
     res.json({
       ingresosDiarios: ingresosDiarios.map(d => ({
-        dia: d._id,
+        fecha: `${d._id.day}/${d._id.month}/${d._id.year}`,
         ingresos: d.ingresos,
         pedidos: d.pedidos
       })),
       comparativa: {
-        mesActual: totalMesActual,
-        mesAnterior: totalMesAnterior,
+        periodoActual: totalActual,
+        periodoAnterior: totalAnterior,
+        pedidosPeriodoActual: totalPeriodo[0]?.pedidos || 0,
         porcentajeCambio: parseFloat(porcentajeCambio),
         tendencia: porcentajeCambio >= 0 ? 'positiva' : 'negativa'
-      }
+      },
+      rangoFechas: { fechaInicio, fechaFin }
     });
   } catch (error) {
     console.error("Error obteniendo análisis financiero:", error);
@@ -193,13 +246,27 @@ export const getAnalisisFinanciero = async (req, res) => {
   }
 };
 
-////////////////////////////////////////////////////////////// REPORTE COMPLETO PARA PDF //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// REPORTE COMPLETO CON RANGO DE FECHAS //////////////////////////////////////////////////////////////
 export const getReporteCompleto = async (req, res) => {
   try {
+    const { fechaInicio, fechaFin } = req.query;
+
+    // Construir el filtro de fechas
+    let filtroFechas = {};
+    if (fechaInicio && fechaFin) {
+      filtroFechas = {
+        createdAt: {
+          $gte: new Date(fechaInicio),
+          $lte: new Date(new Date(fechaFin).setHours(23, 59, 59, 999))
+        }
+      };
+    }
+
     // Obtener todas las estadísticas necesarias
-    const [statsGenerales, ventasMensuales, topProductos, analisisFinanciero] = await Promise.all([
-      // Stats generales
+    const [statsGenerales, ventasMensuales, topProductos, analisisPeriodo] = await Promise.all([
+      // Stats generales del período
       Order.aggregate([
+        { $match: filtroFechas },
         {
           $facet: {
             totalVentas: [
@@ -212,15 +279,9 @@ export const getReporteCompleto = async (req, res) => {
         }
       ]),
       
-      // Ventas de los últimos 12 meses
+      // Ventas agrupadas por mes en el rango
       Order.aggregate([
-        {
-          $match: {
-            createdAt: {
-              $gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
-            }
-          }
-        },
+        { $match: filtroFechas },
         {
           $group: {
             _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
@@ -231,8 +292,9 @@ export const getReporteCompleto = async (req, res) => {
         { $sort: { "_id.year": 1, "_id.month": 1 } }
       ]),
       
-      // Top 5 productos
+      // Top 5 productos del período
       Order.aggregate([
+        { $match: filtroFechas },
         { $unwind: "$items" },
         {
           $group: {
@@ -245,20 +307,14 @@ export const getReporteCompleto = async (req, res) => {
         { $limit: 5 }
       ]),
       
-      // Análisis del mes actual
+      // Análisis del período seleccionado
       Order.aggregate([
-        {
-          $match: {
-            createdAt: {
-              $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-            }
-          }
-        },
+        { $match: filtroFechas },
         {
           $group: {
             _id: null,
-            totalMes: { $sum: "$totalPrice" },
-            pedidosMes: { $sum: 1 },
+            totalPeriodo: { $sum: "$totalPrice" },
+            pedidosPeriodo: { $sum: 1 },
             promedioTicket: { $avg: "$totalPrice" }
           }
         }
@@ -275,11 +331,12 @@ export const getReporteCompleto = async (req, res) => {
       },
       ventasMensuales,
       topProductos,
-      mesActual: analisisFinanciero[0] || {
-        totalMes: 0,
-        pedidosMes: 0,
+      periodoSeleccionado: analisisPeriodo[0] || {
+        totalPeriodo: 0,
+        pedidosPeriodo: 0,
         promedioTicket: 0
-      }
+      },
+      rangoFechas: fechaInicio && fechaFin ? { fechaInicio, fechaFin } : null
     });
   } catch (error) {
     console.error("Error obteniendo reporte completo:", error);
@@ -287,11 +344,31 @@ export const getReporteCompleto = async (req, res) => {
   }
 };
 
-////////////////////////////////////////////////////////////// GENERAR REPORTE PDF //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// GENERAR REPORTE PDF CON RANGO DE FECHAS //////////////////////////////////////////////////////////////
 export const generarReportePDF = async (req, res) => {
   try {
-    // Obtener datos del reporte
+    const { fechaInicio, fechaFin } = req.query;
+
+    // Construir el filtro de fechas
+    let filtroFechas = {};
+    let textoRango = 'Histórico Completo';
+    
+    if (fechaInicio && fechaFin) {
+      filtroFechas = {
+        createdAt: {
+          $gte: new Date(fechaInicio),
+          $lte: new Date(new Date(fechaFin).setHours(23, 59, 59, 999))
+        }
+      };
+      
+      const inicio = new Date(fechaInicio).toLocaleDateString('es-CO');
+      const fin = new Date(fechaFin).toLocaleDateString('es-CO');
+      textoRango = `Del ${inicio} al ${fin}`;
+    }
+
+    // Obtener datos del reporte con el filtro de fechas
     const statsGenerales = await Order.aggregate([
+      { $match: filtroFechas },
       {
         $facet: {
           totalVentas: [
@@ -308,8 +385,9 @@ export const generarReportePDF = async (req, res) => {
     const totalVentas = statsGenerales[0]?.totalVentas[0]?.total || 0;
     const totalPedidos = statsGenerales[0]?.totalPedidos[0]?.total || 0;
 
-    // Top productos
+    // Top productos con filtro de fechas
     const topProductos = await Order.aggregate([
+      { $match: filtroFechas },
       { $unwind: "$items" },
       {
         $group: {
@@ -322,19 +400,6 @@ export const generarReportePDF = async (req, res) => {
       { $limit: 5 }
     ]);
 
-    // Ventas del mes actual
-    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const ventasMes = await Order.aggregate([
-      { $match: { createdAt: { $gte: inicioMes } } },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$totalPrice" },
-          pedidos: { $sum: 1 }
-        }
-      }
-    ]);
-
     const doc = new PDFDocument({ margin: 50 });
 
     res.setHeader('Content-Disposition', 'attachment; filename=reporte-vandalo-grill.pdf');
@@ -345,7 +410,7 @@ export const generarReportePDF = async (req, res) => {
     const logoPath = path.join(process.cwd(), 'img', 'LOGOO.png');
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, 250, 40, { width: 100 });
-      doc.moveDown(6); // Más espacio después del logo
+      doc.moveDown(6);
     }
 
     // Título
@@ -372,6 +437,14 @@ export const generarReportePDF = async (req, res) => {
       .text('Tel: 57 314 577 3241', { align: 'center' })
       .text('elvandalogrillcolombia@gmail.com', { align: 'center' })
       .moveDown(1);
+
+    // NUEVO: Rango de fechas del reporte
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .fillColor('#f59e0b')
+      .text(`Período: ${textoRango}`, { align: 'center' })
+      .moveDown(0.5);
 
     // Fecha de generación
     const fecha = new Date().toLocaleString('es-CO', {
@@ -424,37 +497,7 @@ export const generarReportePDF = async (req, res) => {
 
     doc.moveDown(2);
 
-    // ===== SECCIÓN 2: VENTAS DEL MES =====
-    doc
-      .fontSize(16)
-      .font('Helvetica-Bold')
-      .fillColor('#000000')
-      .text('VENTAS DEL MES ACTUAL', { underline: true })
-      .moveDown(1);
-
-    const ventasMesActual = ventasMes[0] || { total: 0, pedidos: 0 };
-    
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .fillColor('#000000')
-      .text('Ingresos del mes: ', 70, doc.y, { continued: true })
-      .font('Helvetica')
-      .fillColor('#10b981')
-      .text(`$${ventasMesActual.total.toLocaleString('es-CO')}`)
-      .moveDown(0.5);
-
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .fillColor('#000000')
-      .text('Pedidos realizados: ', 70, doc.y, { continued: true })
-      .font('Helvetica')
-      .fillColor('#3b82f6')
-      .text(`${ventasMesActual.pedidos}`)
-      .moveDown(2);
-
-    // ===== SECCIÓN 3: PRODUCTOS MÁS VENDIDOS =====
+    // ===== SECCIÓN 2: PRODUCTOS MÁS VENDIDOS =====
     doc
       .fontSize(16)
       .font('Helvetica-Bold')
@@ -462,19 +505,27 @@ export const generarReportePDF = async (req, res) => {
       .text('TOP 5 PRODUCTOS MAS VENDIDOS', { underline: true })
       .moveDown(1);
 
-    topProductos.forEach((producto, index) => {
+    if (topProductos.length > 0) {
+      topProductos.forEach((producto, index) => {
+        doc
+          .fontSize(11)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text(`${index + 1}. ${producto._id}`, 70)
+          .font('Helvetica')
+          .fillColor('#666666')
+          .text(`   ${producto.cantidad} unidades vendidas`, 70, doc.y, { continued: true })
+          .fillColor('#10b981')
+          .text(` | $${producto.ingresos.toLocaleString('es-CO')}`)
+          .moveDown(0.5);
+      });
+    } else {
       doc
         .fontSize(11)
-        .font('Helvetica-Bold')
-        .fillColor('#000000')
-        .text(`${index + 1}. ${producto._id}`, 70)
         .font('Helvetica')
         .fillColor('#666666')
-        .text(`   ${producto.cantidad} unidades vendidas`, 70, doc.y, { continued: true })
-        .fillColor('#10b981')
-        .text(` | $${producto.ingresos.toLocaleString('es-CO')}`)
-        .moveDown(0.5);
-    });
+        .text('No hay datos de productos en el período seleccionado', 70);
+    }
 
     doc.moveDown(2);
 

@@ -107,16 +107,7 @@ const Header = () => {
               <li className="relative group">
                 <Link to="/menu" onClick={() => toggleDropdown('food')} className="flex items-center space-x-1 text-gray-300 hover:text-yellow-400 font-medium">
                   <span>Menú</span>
-                  <ChevronDown className={`w-4 h-4 ${openDropdown === 'food' ? 'rotate-180' : ''}`} />
                 </Link>
-                {openDropdown === 'food' && (
-                  <div className="absolute top-full left-0 mt-2 w-52 bg-gradient-to-br from-gray-900 to-black border border-gray-700 rounded-xl shadow-2xl z-50">
-                    <a href={getMenuLink('entradas')} onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Entradas</a>
-                    <a href={getMenuLink('platosprincipales')} onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Platos Principales</a>
-                    <a href={getMenuLink('postres')} onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Postres</a>
-                    <a href={getMenuLink('bebidas')} onClick={handleLinkClick} className="block px-4 py-3 text-sm text-gray-300 hover:text-yellow-400">Bebidas</a>
-                  </div>
-                )}
               </li>
 
               <li><Link to="/contacto" className="text-gray-300 hover:text-yellow-400 font-medium">Contacto</Link></li>

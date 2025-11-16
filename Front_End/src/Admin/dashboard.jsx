@@ -74,35 +74,17 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      
-      // Llamar al endpoint de logout si existe
-      if (token) {
-        await fetch("http://localhost:5000/api/auth/logout", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
-        }).catch(err => console.log("Error al cerrar sesión en el servidor:", err));
-      }
-    } catch (error) {
-      console.error("Error durante el logout:", error);
-    } finally {
-      // Limpiar todo el localStorage
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userInfo");
-      
-      // Limpiar sessionStorage también por seguridad
-      sessionStorage.clear();
-      
-      // Redirigir al login
-      navigate("/");
-    }
+  const handleLogout = () => {
+    // Limpiar token y datos del localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    
+    // Limpiar sessionStorage si también lo usas
+    sessionStorage.clear();
+    
+    // Redirigir al login (ajustar según tu estructura)
+    window.location.href = "/";
   };
 
   const fetchBajoStock = async () => {
@@ -366,6 +348,27 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("Error al eliminar usuario:", err);
+      alert("Error de conexión con el servidor");
+    }
+  };
+
+  const handleEditUser = async (userId, updatedData) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/user/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Actualizar la lista de usuarios
+        setUsers((prev) => prev.map((u) => u._id === userId ? { ...u, ...updatedData } : u));
+        alert("Usuario actualizado exitosamente");
+      } else {
+        alert(data.message || "Error al actualizar usuario");
+      }
+    } catch (err) {
+      console.error("Error al actualizar usuario:", err);
       alert("Error de conexión con el servidor");
     }
   };

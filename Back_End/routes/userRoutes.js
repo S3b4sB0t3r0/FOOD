@@ -10,7 +10,8 @@ import {
   getAllUsers,
   toggleEstado,
   eliminarUsuario,
-  cargaMasivaUsuarios 
+  cargaMasivaUsuarios,
+  updateUserAdmin
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middleware/authMiddleware.js';
@@ -30,5 +31,6 @@ router.delete('/:id', eliminarUsuario);
 router.get('/perfil', authMiddleware, getProfile);
 router.put('/perfil', authMiddleware, updateProfile);
 router.put('/password', authMiddleware, updatePassword);
+router.put('/:id', authMiddleware, updateUserAdmin);
 
 export default router;
