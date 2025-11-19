@@ -13,6 +13,7 @@ import statsRoutes from './routes/statsRoutes.js';
 import reportesRoutes from './routes/reportes.js';
 import movimientosRoutes from './routes/movimientos.js';
 import employeeRoutes from './routes/employeeRoutes.js';
+import ingredientesRoutes from "./routes/ingredientesRoutes.js";
 import connectDB from './config/db.js';
 
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/movimientos', movimientosRoutes);
 app.use('/api/employee', employeeRoutes);
+app.use("/api/ingredientes", ingredientesRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {

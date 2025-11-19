@@ -7,7 +7,8 @@ import InventoryContent from "./components/InventoryContent";
 import UsersContent from "./components/UsersContent";
 import ContactsContent from "./components/ContactsContent";
 import ReportsContent from "./components/ReportsContent";
-
+import InventoryIngredientsContent from "./components/InventoryIngredientsContent";
+import IngredientModal from "./components/modals/IngredientModal";
 import OrderViewModal from "./components/modals/OrderViewModal";
 import OrderEditModal from "./components/modals/OrderEditModal";
 import OrderDeleteModal from "./components/modals/OrderDeleteModal";
@@ -30,6 +31,10 @@ const Dashboard = () => {
   const [productData, setProductData] = useState([]);
   const [pedidosPorDia, setPedidosPorDia] = useState([]);
   const [horasPico, setHorasPico] = useState([]);
+  // Ingredientes
+  const [ingredientes, setIngredientes] = useState([]);
+  const [isIngredientModalOpen, setIsIngredientModalOpen] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState(null);
   // Inventario
   const [productos, setProductos] = useState([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -185,6 +190,23 @@ const Dashboard = () => {
       }
     };
     fetchProductos();
+  }, []);
+
+  // ----------------------------
+  // FETCH: Ingredientes
+  // ----------------------------
+  useEffect(() => {
+    const fetchIngredientes = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/ingredientes");
+        const data = await res.json();
+        setIngredientes(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error al cargar ingredientes:", err);
+        setIngredientes([]);
+      }
+    };
+    fetchIngredientes();
   }, []);
 
   // ----------------------------
@@ -388,10 +410,45 @@ const Dashboard = () => {
     setSelectedProduct(null);
   };
 
+  // Ingredient handlers
+const handleDeleteIngredient = async (id) => {
+  if (!confirm("¿Estás seguro de eliminar este ingrediente?")) return;
+  
+  try {
+    const res = await fetch(`http://localhost:5000/api/ingredientes/${id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setIngredientes((prev) => prev.filter((i) => i._id !== id));
+    } else {
+      alert(data.message || "Error al eliminar ingrediente");
+    }
+  } catch (err) {
+    console.error("Error al eliminar ingrediente:", err);
+    alert("Error de conexión con el servidor");
+  }
+};
+
+const handleIngredientUpdated = (updated) => {
+  setIngredientes((prev) => {
+    const index = prev.findIndex((i) => i._id === updated._id);
+    if (index !== -1) {
+      const copia = [...prev];
+      copia[index] = updated;
+      return copia;
+    } else {
+      return [updated, ...prev];
+    }
+  });
+  setSelectedIngredient(null);
+};
+
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "orders", label: "Pedidos", icon: ClipboardList },
     { id: "inventory", label: "Menu", icon: Package },
+    { id: "ingredients", label: "Ingredientes", icon: Package },
     { id: "users", label: "Usuarios", icon: Users },
     { id: "contacts", label: "Contactos", icon: Mail },
     { id: "reports", label: "Reportes", icon: BarChart },
@@ -567,6 +624,10 @@ const Dashboard = () => {
             <InventoryContent productos={productos} setSelectedProduct={setSelectedProduct} setIsModalOpen={setIsProductModalOpen} parsePrice={parsePrice} />
           )}
 
+          {activeSection === "ingredients" && (
+            <InventoryIngredientsContent  ingredientes={ingredientes} setSelectedIngredient={setSelectedIngredient} setIsModalOpen={setIsIngredientModalOpen} onDelete={handleDeleteIngredient} />
+          )}
+
           {activeSection === "users" && (
             <UsersContent users={users} setUsers={setUsers} handleDelete={handleDeleteUser} />
           )}
@@ -631,6 +692,7 @@ const Dashboard = () => {
       <OrderEditModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} order={selectedOrder} newStatus={newStatus} newDescription={newDescription} setNewStatus={setNewStatus} setNewDescription={setNewDescription} handleUpdateOrder={handleUpdateOrder} />
       <OrderDeleteModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} order={selectedOrder} handleConfirmDelete={handleConfirmDelete} />
       <ContactViewModal isOpen={isViewContactModalOpen} onClose={() => setIsViewContactModalOpen(false)} contact={selectedContact} />
+      <IngredientModal isOpen={isIngredientModalOpen} onClose={() => setIsIngredientModalOpen(false)} ingredient={selectedIngredient} onUpdate={handleIngredientUpdated} />
     </div>
   );
 };
