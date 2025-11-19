@@ -19,9 +19,9 @@ import ContactPage from './pages/Contacto';
 import LoginRegister  from './pages/LoginRegister';
 import PasswordReset from './pages/RestablecerContraseña';
 import PasswordChange from './pages/CambioContraseña';
-import ProfilePage from './pages/Cuenta';
 import FoodChainDashboard from './Admin/dashboard';
 import EmployeeDashboard from './Employee/dashboard';
+import Perfil from './Client/Perfil';
 
 
 function App() {
@@ -53,7 +53,7 @@ function App() {
             {/* Rutas protegidas para clientes */}
             <Route element={<RutaProtegida />}>
               <Route path="/cart" element={<CartPage />} />
-              <Route path="/cuenta" element={<ProfilePage />} />
+              <Route path="/cuenta" element={<Perfil />} />
             </Route>
           </Routes>
         </Router>
