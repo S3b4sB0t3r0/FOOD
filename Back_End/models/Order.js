@@ -22,7 +22,7 @@ const OrderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pendiente', 'preparando', 'enviado', 'entregado', 'cancelado'],
+    enum: ['pendiente', 'preparando', 'enviado', 'entregado', 'cancelado', 'confirmado', 'reportado'],
     default: 'pendiente',
   },
   customerEmail: {

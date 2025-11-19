@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Plus, Upload, X, Search, History } from "lucide-react";
 import BulkProductUpload from "./BulkProductUpload";
-import MovimientosModal from "../components/modals/MovimientosModal"; // ✅ Importamos la modal
+import MovimientosModal from "../components/modals/MovimientosModal";
 
 const InventoryContent = ({
   productos,
@@ -9,26 +9,20 @@ const InventoryContent = ({
   setIsModalOpen,
   parsePrice,
 }) => {
-  // Estado interno para el modal de carga masiva
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-
-  // ✅ Estado para la modal de movimientos
   const [isMovimientosOpen, setIsMovimientosOpen] = useState(false);
 
-  // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todas las categorías");
   const [stockFilter, setStockFilter] = useState("Todos los niveles");
   const [statusFilter, setStatusFilter] = useState("Todos los estados");
   const [sortBy, setSortBy] = useState("Nombre A-Z");
 
-  // Obtener categorías únicas de los productos
   const categories = useMemo(() => {
     const cats = [...new Set(productos.map(p => p.category || p.categoria).filter(Boolean))];
     return cats.sort();
   }, [productos]);
 
-  // Función para filtrar y ordenar productos
   const filteredProducts = useMemo(() => {
     let filtered = [...productos];
 
@@ -100,7 +94,6 @@ const InventoryContent = ({
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-gray-900 to-black border border-gray-800 p-6 rounded-xl shadow-lg">
-        {/* === HEADER === */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold text-white">Menu General</h3>
@@ -110,7 +103,6 @@ const InventoryContent = ({
           </div>
 
           <div className="flex gap-3">
-            {/* ✅ BOTÓN HISTORIAL DE MOVIMIENTOS */}
             <button
               onClick={() => setIsMovimientosOpen(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-gray-700 to-gray-800 text-white px-4 py-2 rounded-xl font-medium shadow hover:shadow-lg hover:from-gray-600 hover:to-gray-700 transition"
@@ -119,7 +111,6 @@ const InventoryContent = ({
               Historial
             </button>
 
-            {/* === BOTÓN CARGA MASIVA === */}
             <button
               onClick={() => setIsBulkModalOpen(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl font-medium shadow hover:shadow-lg transition"
@@ -128,7 +119,6 @@ const InventoryContent = ({
               Carga Masiva
             </button>
 
-            {/* === BOTÓN AGREGAR PRODUCTO === */}
             <button
               onClick={() => {
                 setSelectedProduct(null);
@@ -142,7 +132,6 @@ const InventoryContent = ({
           </div>
         </div>
 
-        {/* === BARRA DE BÚSQUEDA Y FILTROS === */}
         <div className="space-y-4 mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -204,11 +193,11 @@ const InventoryContent = ({
           </div>
         </div>
 
-        {/* === TABLA DE PRODUCTOS === */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-700">
+                <th className="text-left py-3 px-4 font-medium text-gray-300">Imagen</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-300">Producto</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-300">Stock</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-300">Mínimo</th>
@@ -227,6 +216,35 @@ const InventoryContent = ({
 
                 return (
                   <tr key={producto._id} className="border-b border-gray-800 hover:bg-gray-800/50 transition">
+                    <td className="py-3 px-4">
+                      {producto.image ? (
+                        <img
+                          src={producto.image}
+                          alt={producto.title}
+                          className="w-12 h-12 object-cover rounded-lg border border-gray-700"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#666"
+                            strokeWidth="2"
+                          >
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                          </svg>
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3 px-4 font-medium text-white">{producto.title}</td>
                     <td
                       className={`py-3 px-4 font-medium ${
@@ -284,7 +302,6 @@ const InventoryContent = ({
         </div>
       </div>
 
-      {/* === MODAL DE CARGA MASIVA === */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-[450px] text-center relative shadow-2xl overflow-y-auto max-h-[90vh]">
@@ -312,7 +329,6 @@ const InventoryContent = ({
         </div>
       )}
 
-      {/* ✅ MODAL HISTORIAL DE MOVIMIENTOS */}
       <MovimientosModal
         isOpen={isMovimientosOpen}
         onClose={() => setIsMovimientosOpen(false)}

@@ -47,7 +47,7 @@ export const getOrderUser = async (req, res) => {
       return res.status(400).json({ message: 'El correo electrónico es requerido.' });
     }
 
-   console.log(`Buscando órdenes para el correo: ${email}`);
+   //console.log(`Buscando órdenes para el correo: ${email}`);
 
     const orders = await Order.find({ customerEmail: email }).sort({ createdAt: -1 });
 
@@ -572,5 +572,95 @@ export const editOrder = async (req, res) => {
     session.endSession();
     console.error("❌ Error al editar pedido:", error);
     res.status(500).json({ message: "Error al editar el pedido." });
+  }
+};
+
+//////////////////////////////////////////////////////////////// CONFIRMAR ORDEN (CLIENTE) //////////////////////////////////////////////////////////////
+export const confirmOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+  //  console.log("✅ Cliente confirmando recepción de orden:", id);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID de pedido no válido." });
+    }
+
+    const order = await Order.findById(id);
+    
+    if (!order) {
+      return res.status(404).json({ message: "Pedido no encontrado." });
+    }
+
+    // Solo se puede confirmar si el domiciliario lo marcó como "entregado"
+    if (order.status !== 'entregado') {
+      return res.status(400).json({ 
+        message: `No se puede confirmar. El pedido está en estado: ${order.status}. Debe estar "entregado" primero.` 
+      });
+    }
+
+    order.status = 'confirmado';
+    await order.save();
+
+    //console.log(`✅ Cliente confirmó recepción del pedido ${id}.`);
+
+    res.status(200).json({
+      message: "Has confirmado la recepción del pedido correctamente.",
+      order
+    });
+
+  } catch (error) {
+  //  console.error("❌ Error al confirmar pedido:", error);
+    res.status(500).json({ message: "Error al confirmar el pedido." });
+  }
+};
+
+//////////////////////////////////////////////////////////////// REPORTAR ORDEN (CLIENTE) //////////////////////////////////////////////////////////////
+export const reportOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { motivo } = req.body; // Opcional: razón del reporte
+
+    //console.log("⚠️ Cliente reportando problema con orden:", id);
+    if (motivo) console.log("📝 Motivo del reporte:", motivo);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID de pedido no válido." });
+    }
+
+    const order = await Order.findById(id);
+    
+    if (!order) {
+      return res.status(404).json({ message: "Pedido no encontrado." });
+    }
+
+    // Solo se puede reportar si el domiciliario lo marcó como "entregado"
+    if (order.status !== 'entregado') {
+      return res.status(400).json({ 
+        message: `No se puede reportar. El pedido está en estado: ${order.status}. Debe estar "entregado" primero.` 
+      });
+    }
+
+    const previousStatus = order.status;
+    order.status = 'reportado';
+    
+    // Guardar el motivo del reporte
+    if (motivo) {
+      order.orderDescription += `\n⚠️ [REPORTADO POR CLIENTE: ${motivo}]`;
+    }
+
+    await order.save();
+
+    //console.log(`⚠️ Pedido ${id} reportado por el cliente. Estado anterior: ${previousStatus}`);
+
+    res.status(200).json({
+      message: "Has reportado un problema con el pedido. Nos pondremos en contacto contigo pronto.",
+      order,
+      previousStatus
+    });
+
+  } catch (error) {
+   // console.error("❌ Error al reportar pedido:", error);
+    res.status(500).json({ message: "Error al reportar el pedido." });
   }
 };
