@@ -1,6 +1,5 @@
-===========================
+
 README - FOOD / EL VANDALO GRILL
-Guía completa para desarrolladores
 ===========================
 
 PROYECTO: FOOD (Sistema Fullstack de Restaurante – Inventario, Pedidos, Dashboard, Reportes)
@@ -10,9 +9,9 @@ REPORTES: PDFKit y XLSX
 AUTENTICACIÓN: JWT + Bcrypt
 EMAILS: Nodemailer
 
-===========================================
-1. DESCRIPCIÓN GENERAL
-===========================================
+## 1. DESCRIPCIÓN GENERAL
+
+
 Este proyecto implementa un sistema completo para la gestión de un restaurante:
 - Administración de productos, ingredientes y empleados
 - Manejo de usuarios con autenticación JWT
@@ -28,9 +27,9 @@ El proyecto está dividido en dos partes:
 BACKEND: carpeta raíz del repositorio (Express, MongoDB, rutas, lógica interna)
 FRONTEND: carpeta "elvandalogrill" (React, dashboard administrativo, componentes UI)
 
-===========================================
-2. CONFIGURACIÓN DEL PROYECTO
-===========================================
+
+## 2. CONFIGURACIÓN DEL PROYECTO
+
 
 -------------------------------------------
 2.1 Requisitos Previos
@@ -86,9 +85,9 @@ Dependencias principales:
 - react-hot-toast
 - @headlessui/react
 
-===========================================
-3. ARQUITECTURA DEL BACKEND
-===========================================
+
+## 3. ARQUITECTURA DEL BACKEND
+
 
 -------------------------------------------
 3.1 Entrada principal: server / index.js
@@ -154,9 +153,9 @@ xlsx → exportar datos en Excel
 mongoose → modelado de datos
 cors → habilitar acceso CORS
 
-===========================================
-4. ARQUITECTURA DEL FRONTEND
-===========================================
+
+## 4. ARQUITECTURA DEL FRONTEND
+
 
 -------------------------------------------
 4.1 Framework y Librerías
@@ -207,9 +206,9 @@ elvandalogrill/
 - Reportes exportables
 - Interfaz profesional
 
-===========================================
-5. ENDPOINTS PRINCIPALES
-===========================================
+
+## 5. ENDPOINTS PRINCIPALES
+
 
 -------------------------------------------
 5.1 Usuarios
@@ -245,9 +244,9 @@ POST /api/orders
 GET /api/reportes/pdf
 GET /api/reportes/excel
 
-===========================================
-6. SISTEMA DE AUTENTICACIÓN
-===========================================
+
+## 6. SISTEMA DE AUTENTICACIÓN
+
 El sistema usa JWT:
 - Token generado al iniciar sesión
 - Middleware para proteger rutas
@@ -256,18 +255,16 @@ El sistema usa JWT:
 
 Contraseñas encriptadas con bcryptjs.
 
-===========================================
-7. GENERACIÓN DE REPORTES
-===========================================
+## 7. GENERACIÓN DE REPORTES
 
 PDF → generado por PDFKit  
 Excel → generado por xlsx
 
 Ambos se descargan desde el dashboard.
 
-===========================================
-8. MOVIMIENTOS Y CONTABILIDAD
-===========================================
+
+## 8. MOVIMIENTOS Y CONTABILIDAD
+
 Sección especial para registrar:
 - Entradas de dinero
 - Salidas de dinero
@@ -275,9 +272,9 @@ Sección especial para registrar:
 - Balance general
 - Exportación de movimientos
 
-===========================================
-9. ESTADÍSTICAS Y DASHBOARD
-===========================================
+
+## 9. ESTADÍSTICAS Y DASHBOARD
+
 Dashboards creados usando:
 - Recharts
 - Framer Motion
@@ -293,9 +290,9 @@ Incluye:
 - Gráfica de ingresos
 - Actividad reciente
 
-===========================================
-10. DESPLIEGUE
-===========================================
+
+## 10. DESPLIEGUE
+
 
 -------------------------------------------
 Backend en producción
@@ -311,9 +308,9 @@ Frontend en producción
 - Subir a Vercel o Netlify
 - Configurar variables REACT_APP_API_URL
 
-===========================================
-11. COMANDOS RÁPIDOS
-===========================================
+
+## 11. COMANDOS RÁPIDOS
+
 
 Backend:
 npm install
@@ -324,21 +321,21 @@ cd elvandalogrill
 npm install
 npm start
 
-===========================================
-12. CONTRIBUCIÓN
-===========================================
+
+## 12. CONTRIBUCIÓN
+
 - Mantener el código modular
 - Usar control de versiones correctamente
 - Crear PR limpios y con descripción clara
 - Mantener la arquitectura MVC del backend
 
-===========================================
-13. CONTACTO
-===========================================
+
+## 13. CONTACTO
+
 Proyecto desarrollado por Sebas Botero.
 
 GitHub: https://github.com/S3b4sB0t3r0
 
-===========================================
-FIN DEL README PARA DESARROLLADORES
-===========================================
+
+## FIN DEL README PARA DESARROLLADORES
+
