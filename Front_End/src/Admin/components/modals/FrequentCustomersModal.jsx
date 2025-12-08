@@ -7,7 +7,7 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerStats, setCustomerStats] = useState(null);
-  const [view, setView] = useState("list"); // "list" o "stats"
+  const [view, setView] = useState("list");
 
   useEffect(() => {
     if (isOpen) {
@@ -107,7 +107,9 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
             </div>
           ) : view === "list" ? (
-            /* VISTA DE LISTA */
+            /* ==============================
+                 VISTA DE LISTA (ACTUALIZADA)
+               ============================== */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {customers.map((customer, index) => (
                 <motion.div
@@ -127,29 +129,38 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
                         <p className="text-white font-semibold truncate max-w-[200px]">
                           {customer.customerEmail}
                         </p>
-                        <p className="text-gray-400 text-sm">{customer.lastOrder}</p>
+                        <p className="text-gray-400 text-sm">
+                          {customer.lastOrder ?? "—"}
+                        </p>
                       </div>
                     </div>
                     {index === 0 && <Award className="w-5 h-5 text-yellow-400" />}
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 text-center">
+                    {/* Pedidos del mes */}
                     <div className="bg-gray-900 p-2 rounded-lg">
                       <ShoppingBag className="w-4 h-4 text-yellow-400 mx-auto mb-1" />
-                      <p className="text-xl font-bold text-white">{customer.totalOrders}</p>
+                      <p className="text-xl font-bold text-white">
+                        {customer.monthlyOrders ?? 0}
+                      </p>
                       <p className="text-xs text-gray-400">Pedidos</p>
                     </div>
+
+                    {/* Total gastado del mes */}
                     <div className="bg-gray-900 p-2 rounded-lg">
                       <DollarSign className="w-4 h-4 text-green-400 mx-auto mb-1" />
                       <p className="text-xl font-bold text-white">
-                        ${customer.totalSpent.toLocaleString()}
+                        ${(customer.monthlySpent ?? 0).toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-400">Total</p>
                     </div>
+
+                    {/* Promedio por pedido */}
                     <div className="bg-gray-900 p-2 rounded-lg">
                       <TrendingUp className="w-4 h-4 text-blue-400 mx-auto mb-1" />
                       <p className="text-xl font-bold text-white">
-                        ${customer.averageOrderValue.toLocaleString()}
+                      {((customer.averageOrderValue ?? 0) / 100).toFixed(2)}%
                       </p>
                       <p className="text-xs text-gray-400">Promedio</p>
                     </div>
@@ -158,7 +169,9 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
               ))}
             </div>
           ) : (
-            /* VISTA DE ESTADÍSTICAS */
+            /* ==============================
+                 VISTA DE ESTADÍSTICAS
+               ============================== */
             customerStats && (
               <div className="space-y-6">
                 {/* Info del cliente */}
@@ -169,25 +182,28 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-yellow-400">
-                        {customerStats.totalOrders}
+                        {customerStats.totalOrders ?? 0}
                       </p>
                       <p className="text-sm text-gray-400">Total Pedidos</p>
                     </div>
+
                     <div className="text-center">
                       <p className="text-3xl font-bold text-green-400">
-                        ${customerStats.totalSpent.toLocaleString()}
+                        ${(customerStats.totalSpent ?? 0).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-400">Total Gastado</p>
                     </div>
+
                     <div className="text-center">
                       <p className="text-3xl font-bold text-blue-400">
-                        ${customerStats.averageOrderValue.toLocaleString()}
+                        ${(customerStats.averageOrderValue ?? 0).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-400">Promedio/Pedido</p>
                     </div>
+
                     <div className="text-center">
                       <p className="text-3xl font-bold text-purple-400">
-                        {customerStats.ordersByStatus.entregado}
+                        {customerStats.ordersByStatus?.entregado ?? 0}
                       </p>
                       <p className="text-sm text-gray-400">Entregados</p>
                     </div>
@@ -196,11 +212,9 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
 
                 {/* Estados de pedidos */}
                 <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                  <h4 className="text-lg font-semibold text-white mb-3">
-                    Pedidos por Estado
-                  </h4>
+                  <h4 className="text-lg font-semibold text-white mb-3">Pedidos por Estado</h4>
                   <div className="space-y-2">
-                    {Object.entries(customerStats.ordersByStatus).map(([status, count]) => (
+                    {Object.entries(customerStats.ordersByStatus || {}).map(([status, count]) => (
                       <div key={status} className="flex items-center justify-between">
                         <span className="text-gray-300 capitalize">{status}</span>
                         <div className="flex items-center gap-2">
@@ -216,12 +230,12 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
                                   : "bg-red-500"
                               }`}
                               style={{
-                                width: `${(count / customerStats.totalOrders) * 100}%`,
+                                width: `${((count ?? 0) / (customerStats.totalOrders || 1)) * 100}%`,
                               }}
                             ></div>
                           </div>
                           <span className="text-white font-semibold w-8 text-right">
-                            {count}
+                            {count ?? 0}
                           </span>
                         </div>
                       </div>
@@ -231,11 +245,9 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
 
                 {/* Productos más pedidos */}
                 <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                  <h4 className="text-lg font-semibold text-white mb-3">
-                    Top 5 Productos Más Pedidos
-                  </h4>
+                  <h4 className="text-lg font-semibold text-white mb-3">Top 5 Productos Más Pedidos</h4>
                   <div className="space-y-3">
-                    {customerStats.topProducts.map((item, index) => (
+                    {(customerStats.topProducts || []).map((item, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between bg-gray-900 p-3 rounded-lg"
@@ -244,9 +256,7 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
                           <span className="text-yellow-400 font-bold">#{index + 1}</span>
                           <span className="text-white">{item.product}</span>
                         </div>
-                        <span className="text-gray-300 font-semibold">
-                          x{item.quantity}
-                        </span>
+                        <span className="text-gray-300 font-semibold">x{item.quantity}</span>
                       </div>
                     ))}
                   </div>
@@ -258,13 +268,17 @@ const FrequentCustomersModal = ({ isOpen, onClose }) => {
                     <div>
                       <p className="text-sm text-gray-400 mb-1">Primer Pedido</p>
                       <p className="text-white font-semibold">
-                        {new Date(customerStats.firstOrder).toLocaleDateString("es-ES")}
+                        {customerStats.firstOrder
+                          ? new Date(customerStats.firstOrder).toLocaleDateString("es-ES")
+                          : "—"}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-400 mb-1">Último Pedido</p>
                       <p className="text-white font-semibold">
-                        {new Date(customerStats.lastOrder).toLocaleDateString("es-ES")}
+                        {customerStats.lastOrder
+                          ? new Date(customerStats.lastOrder).toLocaleDateString("es-ES")
+                          : "—"}
                       </p>
                     </div>
                   </div>

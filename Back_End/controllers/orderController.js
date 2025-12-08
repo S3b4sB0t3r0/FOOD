@@ -251,77 +251,102 @@ export const deleteOrder = async (req, res) => {
   }
 };
 
-//////////////////////////////////////////////////////////////// OBTENER CLIENTES MÁS FRECUENTES //////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////// OBTENER CLIENTES FRECUENTES (POR PROMEDIO MENSUAL) /////////////////////////////////////////////////////////////////
 export const getFrequentCustomers = async (req, res) => {
   try {
-    // Solo mostramos los 3 primeros clientes
     const limit = 3;
+
+    // Rango del mes actual
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const currentDay = now.getDate(); // Día actual del mes
 
     const frequentCustomers = await Order.aggregate([
       {
-        // Agrupar por email del cliente
-        $group: {
-          _id: '$customerEmail',
-          totalOrders: { $sum: 1 },
-          totalSpent: { $sum: '$totalPrice' },
-          lastOrder: { $max: '$createdAt' },
-          orders: { $push: '$_id' }
+        // Filtrar solo pedidos del mes actual
+        $match: {
+          createdAt: { $gte: monthStart, $lt: monthEnd }
         }
       },
       {
-        // Filtrar solo clientes con más de 5 pedidos
-        $match: { totalOrders: { $gt: 5 } }
+        // Agrupar por cliente
+        $group: {
+          _id: "$customerEmail",
+          monthlyOrders: { $sum: 1 },
+          monthlySpent: { $sum: "$totalPrice" },
+          lastOrder: { $max: "$createdAt" }
+        }
       },
       {
-        // Ordenar por número de pedidos (descendente)
-        $sort: { totalOrders: -1 }
+        // Filtrar clientes que sí han comprado este mes
+        $match: {
+          monthlyOrders: { $gt: 0 }
+        }
       },
       {
-        // Limitar a los 3 primeros
+        // Calcular promedios
+        $addFields: {
+          averageDailyOrders: {
+            $divide: ["$monthlyOrders", currentDay]
+          },
+          averageOrderValue: {
+            $cond: [
+              { $eq: ["$monthlyOrders", 0] },
+              0,
+              { $divide: ["$monthlySpent", "$monthlyOrders"] }
+            ]
+          }
+        }
+      },
+      {
+        // Ordenar por mayor promedio diario
+        $sort: { averageDailyOrders: -1 }
+      },
+      {
+        // Limitar a los primeros
         $limit: limit
       },
       {
-        // Formatear la salida
+        // Formatear salida
         $project: {
           _id: 0,
-          customerEmail: '$_id',
-          totalOrders: 1,
-          totalSpent: { $round: ['$totalSpent', 2] },
-          averageOrderValue: {
-            $round: [{ $divide: ['$totalSpent', '$totalOrders'] }, 2]
-          },
+          customerEmail: "$_id",
+          monthlyOrders: 1,
+          monthlySpent: { $round: ["$monthlySpent", 2] },
+          averageDailyOrders: { $round: ["$averageDailyOrders", 3] },
+          averageOrderValue: { $round: ["$averageOrderValue", 2] },
           lastOrder: {
             $dateToString: {
-              format: '%d/%m/%Y %H:%M',
-              date: '$lastOrder',
-              timezone: 'America/Bogota'
+              format: "%d/%m/%Y %H:%M",
+              date: "$lastOrder",
+              timezone: "America/Bogota"
             }
-          },
-          orderIds: '$orders'
+          }
         }
       }
     ]);
 
     if (frequentCustomers.length === 0) {
       return res.status(404).json({
-        message: 'No se encontraron clientes con más de 5 pedidos.'
+        message: "No se encontraron pedidos este mes."
       });
     }
 
     res.status(200).json({
-      message: 'Top 3 clientes frecuentes obtenidos correctamente.',
+      message: "Top 3 clientes frecuentes del mes obtenidos correctamente.",
       total: frequentCustomers.length,
       customers: frequentCustomers
     });
 
   } catch (error) {
-    console.error('❌ Error al obtener clientes frecuentes:', error);
+    console.error("❌ Error al obtener clientes frecuentes:", error);
     res.status(500).json({
-      message: 'Error al obtener los clientes frecuentes.'
+      message: "Error al obtener los clientes frecuentes."
     });
   }
 };
-
 
 //////////////////////////////////////////////////////////////// OBTENER ESTADÍSTICAS DETALLADAS DE UN CLIENTE //////////////////////////////////////////////////////////////
 export const getCustomerStats = async (req, res) => {

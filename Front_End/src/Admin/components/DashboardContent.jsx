@@ -166,16 +166,15 @@ const DashboardContent = ({
                 dataKey="value"
               >
                 {productData.map((entry, index) => (
-                  // Usamos blanco y tonos grises claros por defecto
                   <Cell key={`cell-${index}`} fill={entry.color || "#ffffff"} />
                 ))}
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "rgba(255, 255, 255, 0.9)", // fondo blanco semitransparente
-                  border: "1px solid #e5e7eb", // gris claro
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  border: "1px solid #e5e7eb",
                   borderRadius: "8px",
-                  color: "#000", // texto negro
+                  color: "#000",
                 }}
                 itemStyle={{
                   color: "#000",
@@ -188,8 +187,7 @@ const DashboardContent = ({
           </ResponsiveContainer>
         </motion.div>
 
-
-        {/* Pedidos por Día */}
+        {/* Pedidos por Día - HORIZONTAL */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -198,30 +196,50 @@ const DashboardContent = ({
         >
           <h3 className="text-lg font-semibold text-white mb-6">📊 Pedidos por Día</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={pedidosPorDia}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="dia" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
+            <BarChart 
+              data={pedidosPorDia} 
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={true} vertical={false} />
+              <XAxis 
+                type="number"
+                stroke="#9ca3af" 
+                fontSize={12}
+                tick={{ fill: '#9ca3af' }}
+              />
+              <YAxis 
+                dataKey="dia"
+                type="category" 
+                stroke="#9ca3af" 
+                fontSize={12}
+                width={70}
+                tick={{ fill: '#9ca3af' }}
+              />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
+                  backgroundColor: "#1f2937",
+                  border: "1px solid #4b5563",
                   borderRadius: "8px",
                   color: "#fff",
                 }}
+                cursor={{ fill: 'rgba(245, 158, 11, 0.1)' }}
               />
-              <Bar dataKey="cantidad" fill="url(#colorPedidos)" radius={[6, 6, 0, 0]} />
-              <defs>
-                <linearGradient id="colorPedidos" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9} />
-                  <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.6} />
-                </linearGradient>
-              </defs>
+              <Bar 
+                dataKey="cantidad" 
+                fill="#f59e0b"
+                radius={[0, 6, 6, 0]}
+                maxBarSize={40}
+              >
+                {pedidosPorDia.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill="#f59e0b" />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
 
-        {/* Horas Pico */}
+        {/* Horas Pico - HORIZONTAL */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -230,25 +248,45 @@ const DashboardContent = ({
         >
           <h3 className="text-lg font-semibold text-white mb-6">🕒 Horas Pico</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={horasPico}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="hora" stroke="#9ca3af" fontSize={12} />
-              <YAxis stroke="#9ca3af" fontSize={12} />
+            <BarChart 
+              data={horasPico} 
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={true} vertical={false} />
+              <XAxis 
+                type="number"
+                stroke="#9ca3af" 
+                fontSize={12}
+                tick={{ fill: '#9ca3af' }}
+              />
+              <YAxis 
+                dataKey="hora"
+                type="category" 
+                stroke="#9ca3af" 
+                fontSize={12}
+                width={70}
+                tick={{ fill: '#9ca3af' }}
+              />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
+                  backgroundColor: "#1f2937",
+                  border: "1px solid #4b5563",
                   borderRadius: "8px",
                   color: "#fff",
                 }}
+                cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
               />
-              <Bar dataKey="cantidad" fill="url(#colorHoras)" radius={[6, 6, 0, 0]} />
-              <defs>
-                <linearGradient id="colorHoras" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.6} />
-                </linearGradient>
-              </defs>
+              <Bar 
+                dataKey="cantidad" 
+                fill="#3b82f6"
+                radius={[0, 6, 6, 0]}
+                maxBarSize={40}
+              >
+                {horasPico.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill="#3b82f6" />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </motion.div>

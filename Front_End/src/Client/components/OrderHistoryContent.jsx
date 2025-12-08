@@ -187,14 +187,14 @@ const OrderDetailsModal = ({ order, isOpen, onClose, onConfirmOrder, onReportOrd
                 className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-green-500/50"
               >
                 <ThumbsUp className="w-5 h-5" />
-                Confirmar Recepción
+                Confirmar Entrega
               </button>
               <button
                 onClick={() => setShowReportForm(true)}
                 className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-red-500/50"
               >
                 <ThumbsDown className="w-5 h-5" />
-                Reportar Problema
+                Reportar Entrega
               </button>
             </div>
           )}
