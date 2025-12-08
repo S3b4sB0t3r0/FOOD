@@ -6,13 +6,10 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
   const [formData, setFormData] = useState({
     nombre: "",
     categoria: "Ingrediente",
-    cantidad: 0,
-    unidadMedida: "kg",
-    stockMinimo: 0,
+    stock: 0,
+    unidad: "kg",
     fechaVencimiento: "",
-    proveedor: "",
-    precioUnitario: 0,
-    notas: ""
+    sede: "Principal"
   });
 
   useEffect(() => {
@@ -20,28 +17,21 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
       setFormData({
         nombre: ingredient.nombre || "",
         categoria: ingredient.categoria || "Ingrediente",
-        cantidad: ingredient.cantidad || 0,
-        unidadMedida: ingredient.unidadMedida || "kg",
-        stockMinimo: ingredient.stockMinimo || 0,
+        stock: ingredient.stock || 0,
+        unidad: ingredient.unidad || "kg",
         fechaVencimiento: ingredient.fechaVencimiento 
           ? new Date(ingredient.fechaVencimiento).toISOString().split('T')[0] 
           : "",
-        proveedor: ingredient.proveedor || "",
-        precioUnitario: ingredient.precioUnitario || 0,
-        notas: ingredient.notas || ""
+        sede: ingredient.sede || "Principal"
       });
     } else {
-      // Reset para nuevo ingrediente
       setFormData({
         nombre: "",
         categoria: "Ingrediente",
-        cantidad: 0,
-        unidadMedida: "kg",
-        stockMinimo: 0,
+        stock: 0,
+        unidad: "kg",
         fechaVencimiento: "",
-        proveedor: "",
-        precioUnitario: 0,
-        notas: ""
+        sede: "Principal"
       });
     }
   }, [ingredient, isOpen]);
@@ -100,8 +90,8 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
             </button>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Content */}
+          <div className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Nombre */}
               <div className="md:col-span-2">
@@ -112,7 +102,8 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
                   type="text"
                   value={formData.nombre}
                   onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white"
+                  placeholder="Ej: Carne para hamburguesa"
                   required
                 />
               </div>
@@ -125,7 +116,7 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
                 <select
                   value={formData.categoria}
                   onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white"
                   required
                 >
                   <option value="Ingrediente">Ingrediente</option>
@@ -140,52 +131,56 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
                   Unidad de Medida *
                 </label>
                 <select
-                  value={formData.unidadMedida}
-                  onChange={(e) => setFormData({...formData, unidadMedida: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  value={formData.unidad}
+                  onChange={(e) => setFormData({...formData, unidad: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white"
                   required
                 >
                   <option value="kg">kg</option>
                   <option value="g">g</option>
-                  <option value="L">L</option>
+                  <option value="l">l</option>
                   <option value="ml">ml</option>
                   <option value="unidad">unidad</option>
                   <option value="paquete">paquete</option>
                 </select>
               </div>
 
-              {/* Cantidad */}
+              {/* Stock */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Cantidad *
+                  Stock Actual *
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  value={formData.cantidad}
-                  onChange={(e) => setFormData({...formData, cantidad: parseFloat(e.target.value)})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  min="0"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({...formData, stock: parseFloat(e.target.value) || 0})}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white"
+                  placeholder="0"
                   required
                 />
               </div>
 
-              {/* Stock Mínimo */}
+              {/* Sede */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Stock Mínimo *
+                  Sede *
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.stockMinimo}
-                  onChange={(e) => setFormData({...formData, stockMinimo: parseFloat(e.target.value)})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                <select
+                  value={formData.sede}
+                  onChange={(e) => setFormData({...formData, sede: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white"
                   required
-                />
+                >
+                  <option value="Principal">Principal</option>
+                  <option value="Sucursal 1">Sucursal 1</option>
+                  <option value="Sucursal 2">Sucursal 2</option>
+                </select>
               </div>
 
               {/* Fecha de Vencimiento */}
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Fecha de Vencimiento
                 </label>
@@ -193,47 +188,7 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
                   type="date"
                   value={formData.fechaVencimiento}
                   onChange={(e) => setFormData({...formData, fechaVencimiento: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-
-              {/* Precio Unitario */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Precio Unitario
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.precioUnitario}
-                  onChange={(e) => setFormData({...formData, precioUnitario: parseFloat(e.target.value)})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-
-              {/* Proveedor */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Proveedor
-                </label>
-                <input
-                  type="text"
-                  value={formData.proveedor}
-                  onChange={(e) => setFormData({...formData, proveedor: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-
-              {/* Notas */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Notas
-                </label>
-                <textarea
-                  value={formData.notas}
-                  onChange={(e) => setFormData({...formData, notas: e.target.value})}
-                  rows={3}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-white"
                 />
               </div>
             </div>
@@ -250,7 +205,8 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
                 Cancelar
               </motion.button>
               <motion.button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black rounded-xl font-semibold hover:from-yellow-400 hover:to-yellow-500 transition-all flex items-center justify-center gap-2"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -259,7 +215,7 @@ const IngredientModal = ({ isOpen, onClose, ingredient, onUpdate }) => {
                 {ingredient ? "Actualizar" : "Crear"}
               </motion.button>
             </div>
-          </form>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>

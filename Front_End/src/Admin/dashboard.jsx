@@ -446,7 +446,7 @@ const handleIngredientUpdated = (updated) => {
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "orders", label: "Pedidos", icon: ClipboardList },
+    { id: "orders", label: "Ordenes", icon: ClipboardList },
     { id: "inventory", label: "Menu", icon: Package },
     { id: "ingredients", label: "Ingredientes", icon: Package },
     { id: "users", label: "Usuarios", icon: Users },
